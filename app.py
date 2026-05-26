@@ -38,77 +38,42 @@ def get_index_chg() -> float:
         return 0.0
 
 
-# ── EastMoney 全市场列表（主，Render海外IP可能被封） ──────────────
-def _get_em_stocks(limit: int) -> list:
-    try:
-        r = _req.get(
-            "https://push2.eastmoney.com/api/qt/clist/get",
-            params={
-                "fid": "f3", "po": 1, "pz": limit, "pn": 1,
-                "np": 1, "fltt": 2, "invt": 2,
-                "fs": "m:1+t:2,m:0+t:6,m:0+t:80,m:1+t:23",
-                "fields": "f2,f3,f5,f6,f8,f10,f12,f13,f14,f20,f21",
-                "ut": "bd1d9ddb04089700cf9c27f6f7426281",
-            },
-            timeout=12,
-        )
-        result = r.json().get("data", {}).get("diff", []) or []
-        if result:
-            print(f"EastMoney OK: {len(result)} stocks")
-        return result
-    except Exception as e:
-        print(f"EastMoney error: {e}")
-        return []
+# ── A 股代码段（腾讯行情可访问，不依赖东财/新浪） ─────────────
+def _gen_astock_qtcodes() -> list[str]:
+    """
+    生成 A 股全量候选代码。返回腾讯格式如 'sh600519'。
+    只覆盖实际有效的代码段，Tencent 对无效代码返回空数据，自动过滤。
+    """
+    pairs: list[str] = []
+    # 沪市主板
+    for n in range(600000, 608000):
+        pairs.append(f"sh{n}")
+    # 沪市科创板
+    for n in range(688000, 689000):
+        pairs.append(f"sh{n}")
+    # 深市主板（含中小板，已合并）
+    for n in range(1, 2000):
+        pairs.append(f"sz{str(n).zfill(6)}")
+    for n in range(2000, 4000):
+        pairs.append(f"sz{str(n).zfill(6)}")
+    # 深市创业板
+    for n in range(300000, 302000):
+        pairs.append(f"sz{n}")
+    return pairs
 
 
-# ── Sina Finance 备用（境外IP可访问） ──────────────────────────
-def _get_sina_stocks() -> list:
-    """Sina Market Center sorted by changepercent desc, enrich vol_ratio via Tencent"""
-    sina_items = []
-    for page in range(1, 8):
-        try:
-            r = _req.get(
-                "http://vip.stock.finance.sina.com.cn/api/json.php/Market_Center.getHQNodeData",
-                params={
-                    "page": page, "num": 100,
-                    "sort": "changepercent", "asc": 0,
-                    "node": "hs_a", "_s_r_a": "page",
-                },
-                headers={"Referer": "https://finance.sina.com.cn"},
-                timeout=10,
-            )
-            items = r.json()
-            if not items:
-                break
-            for item in items:
-                chg = safe_float(item.get("changepercent"))
-                if chg >= 2.5:
-                    symbol = item.get("symbol", "")
-                    if symbol and len(symbol) > 2:
-                        sina_items.append({
-                            "symbol": symbol,
-                            "name": item.get("name", ""),
-                            "nmc": safe_float(item.get("nmc")),  # 流通市值，万元
-                        })
-            page_min = min((safe_float(x.get("changepercent")) for x in items), default=0)
-            if page_min < 2.5:
-                break
-        except Exception as e:
-            print(f"Sina page {page} error: {e}")
-            break
+# ── 腾讯行情批量查询 ──────────────────────────────────────────
+def _tencent_batch_scan(qtcodes: list[str], chg_min: float = 2.5) -> list[dict]:
+    """
+    分批并行查询腾讯行情，只返回涨幅 >= chg_min 的股票。
+    腾讯每批最多 80 只，20 个并发线程。
+    """
+    BATCH = 60
+    WORKERS = 20
+    results: list[dict] = []
+    lock = threading.Lock()
 
-    if not sina_items:
-        return []
-
-    print(f"Sina: {len(sina_items)} candidates ≥2.5% chg")
-
-    # Enrich with Tencent for trading metrics (confirmed working from non-China IPs)
-    symbol_map = {item["symbol"]: item for item in sina_items}
-    all_symbols = list(symbol_map.keys())
-    results = []
-
-    for i in range(0, len(all_symbols), 80):
-        batch = all_symbols[i:i + 80]
+    def fetch(batch: list[str]) -> None:
         try:
             r = _req.get(f"http://qt.gtimg.cn/q={','.join(batch)}", timeout=10)
             for seg in r.text.strip().split(";"):
@@ -118,41 +83,96 @@ def _get_sina_stocks() -> list:
                 if not m:
                     continue
                 qtcode = m.group(1)
-                if qtcode not in symbol_map:
-                    continue
                 parts = m.group(2).split("~")
                 if len(parts) < 40:
                     continue
                 price = safe_float(parts[3])
                 if price <= 0:
                     continue
-                nmc = symbol_map[qtcode]["nmc"]  # 万元 → *1e4 → 元
-                results.append({
-                    "f2":  price,
-                    "f3":  safe_float(parts[32]),         # 涨跌幅%
-                    "f5":  safe_float(parts[36]),         # 成交量(手)
-                    "f6":  safe_float(parts[37]),         # 成交额(元)
-                    "f8":  safe_float(parts[38]),         # 换手率%
-                    "f10": safe_float(parts[49]) if len(parts) > 49 and safe_float(parts[49]) < 30 else 0,  # 量比
-                    "f12": qtcode[2:],                    # 纯代码
-                    "f13": 1 if qtcode[:2] == "sh" else 0,
-                    "f14": symbol_map[qtcode]["name"],
-                    "f20": 0,
-                    "f21": nmc * 1e4,                    # 万元→元，同 EastMoney f21 单位
-                })
-        except Exception as e:
-            print(f"Tencent batch {i//80} error: {e}")
+                chg_pct = safe_float(parts[32])
+                if chg_pct < chg_min:
+                    continue
+                name = parts[1]
+                if not name or "ST" in name.upper():
+                    continue
+                volume = safe_float(parts[36])   # 手
+                amount = safe_float(parts[37])   # 元
+                turnover = safe_float(parts[38]) # 换手率%
+                vol_ratio = (
+                    safe_float(parts[49])
+                    if len(parts) > 49 and 0 < safe_float(parts[49]) < 30
+                    else 0.0
+                )
+                # 流通市值(亿) = 成交量(手) × 100 / (换手率/100) × 股价 / 1e8
+                if turnover > 0.01:
+                    float_cap = volume * 10000 * price / (turnover * 1e8)
+                else:
+                    float_cap = 0.0
+                prefix = qtcode[:2]
+                code = qtcode[2:]
+                mkt_code = 1 if prefix == "sh" else 0
+                with lock:
+                    results.append({
+                        "f2": price,
+                        "f3": chg_pct,
+                        "f5": volume,
+                        "f6": amount,
+                        "f8": turnover,
+                        "f10": vol_ratio,
+                        "f12": code,
+                        "f13": mkt_code,
+                        "f14": name,
+                        "f20": 0,
+                        "f21": float_cap * 1e8,  # 元（与 EastMoney f21 单位一致）
+                    })
+        except Exception:
+            pass
 
-    print(f"Sina+Tencent final: {len(results)} stocks")
+    batches = [qtcodes[i:i + BATCH] for i in range(0, len(qtcodes), BATCH)]
+    active: list[threading.Thread] = []
+    for b in batches:
+        t = threading.Thread(target=fetch, args=(b,), daemon=True)
+        active.append(t)
+        t.start()
+        if len(active) >= WORKERS:
+            for t2 in active:
+                t2.join(timeout=15)
+            active = []
+    for t2 in active:
+        t2.join(timeout=15)
+
     return results
 
 
-def get_em_stocks(limit: int = 500) -> list:
-    """Try EastMoney first; fall back to Sina + Tencent"""
-    result = _get_em_stocks(limit)
-    if result:
-        return result
-    return _get_sina_stocks()
+def get_all_stocks() -> list[dict]:
+    """
+    尝试 EastMoney（快） → 失败则用 Tencent 全扫（稳）。
+    Tencent 已证明从 Render 海外服务器可访问（指数显示正常即可）。
+    """
+    # 先试 EastMoney（中国境内访问时更快）
+    try:
+        r = _req.get(
+            "https://push2.eastmoney.com/api/qt/clist/get",
+            params={
+                "fid": "f3", "po": 1, "pz": 500, "pn": 1,
+                "np": 1, "fltt": 2, "invt": 2,
+                "fs": "m:1+t:2,m:0+t:6,m:0+t:80,m:1+t:23",
+                "fields": "f2,f3,f5,f6,f8,f10,f12,f13,f14,f20,f21",
+                "ut": "bd1d9ddb04089700cf9c27f6f7426281",
+            },
+            timeout=8,
+        )
+        data = r.json().get("data", {}).get("diff", []) or []
+        if data:
+            print(f"EastMoney OK: {len(data)} stocks")
+            return data
+    except Exception as e:
+        print(f"EastMoney failed: {e}")
+
+    # 备用：腾讯全量扫描（海外IP可用）
+    print("Falling back to Tencent full scan...")
+    codes = _gen_astock_qtcodes()
+    return _tencent_batch_scan(codes, chg_min=2.5)
 
 
 # ── 涨停基因：20日内是否有涨停 ──────────────────────────────────
@@ -184,12 +204,13 @@ def check_limit_gene(code: str, mkt_code: int, days: int = 20) -> bool:
 def run_scan() -> dict:
     t0 = time.time()
     index_chg = get_index_chg()
-    raw = get_em_stocks(500)
+    raw = get_all_stocks()
 
     if not raw:
         return {
-            "error": "无法获取行情数据，EastMoney 和 Sina Finance API 均不可用",
-            "stocks": [], "index_chg": 0, "total_found": 0, "elapsed": 0,
+            "error": "无法获取行情数据，请稍后重试",
+            "stocks": [], "index_chg": index_chg,
+            "total_found": 0, "elapsed": 0,
             "scan_time": datetime.now().strftime("%H:%M:%S"),
         }
 
@@ -223,7 +244,7 @@ def run_scan() -> dict:
         vr_ok = vol_ratio > 1.0
 
         # ④ 流通市值 50-200亿
-        cap_ok = 50.0 <= float_cap <= 200.0
+        cap_ok = float_cap > 0 and (50.0 <= float_cap <= 200.0)
 
         # ⑥ 分时均线：股价 ≥ VWAP
         if volume > 0 and amount > 0:
@@ -233,7 +254,7 @@ def run_scan() -> dict:
             vwap, vwap_ok = price, False
 
         # ⑦ 强于大盘
-        stronger_ok = chg_pct > index_chg
+        stronger_ok = index_chg > 0 and chg_pct > index_chg
 
         # 预筛：除涨幅外至少再满足 2 项
         if sum([to_ok, vr_ok, cap_ok, vwap_ok, stronger_ok]) < 2:
@@ -252,7 +273,7 @@ def run_scan() -> dict:
             "score": 0,
         })
 
-    # ⑤ 涨停基因（并行 HTTP，最多检查 40 只）
+    # ⑤ 涨停基因（并行，最多 40 只）
     top = candidates[:40]
 
     def _check(stock: dict) -> None:
