@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import threading
 import time
 from datetime import datetime
@@ -14,7 +15,7 @@ app = Flask(__name__, static_folder="static")
 
 _req = requests.Session()
 _req.headers.update({
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15",
     "Referer": "https://finance.qq.com",
 })
 
@@ -37,9 +38,8 @@ def get_index_chg() -> float:
         return 0.0
 
 
-# ── EastMoney 全市场列表 ────────────────────────────────────────
-def get_em_stocks(limit: int = 500) -> list:
-    """按涨幅降序取 limit 只 A股+科创板"""
+# ── EastMoney 全市场列表（主，Render海外IP可能被封） ──────────────
+def _get_em_stocks(limit: int) -> list:
     try:
         r = _req.get(
             "https://push2.eastmoney.com/api/qt/clist/get",
@@ -52,9 +52,107 @@ def get_em_stocks(limit: int = 500) -> list:
             },
             timeout=12,
         )
-        return r.json().get("data", {}).get("diff", []) or []
-    except Exception:
+        result = r.json().get("data", {}).get("diff", []) or []
+        if result:
+            print(f"EastMoney OK: {len(result)} stocks")
+        return result
+    except Exception as e:
+        print(f"EastMoney error: {e}")
         return []
+
+
+# ── Sina Finance 备用（境外IP可访问） ──────────────────────────
+def _get_sina_stocks() -> list:
+    """Sina Market Center sorted by changepercent desc, enrich vol_ratio via Tencent"""
+    sina_items = []
+    for page in range(1, 8):
+        try:
+            r = _req.get(
+                "http://vip.stock.finance.sina.com.cn/api/json.php/Market_Center.getHQNodeData",
+                params={
+                    "page": page, "num": 100,
+                    "sort": "changepercent", "asc": 0,
+                    "node": "hs_a", "_s_r_a": "page",
+                },
+                headers={"Referer": "https://finance.sina.com.cn"},
+                timeout=10,
+            )
+            items = r.json()
+            if not items:
+                break
+            for item in items:
+                chg = safe_float(item.get("changepercent"))
+                if chg >= 2.5:
+                    symbol = item.get("symbol", "")
+                    if symbol and len(symbol) > 2:
+                        sina_items.append({
+                            "symbol": symbol,
+                            "name": item.get("name", ""),
+                            "nmc": safe_float(item.get("nmc")),  # 流通市值，万元
+                        })
+            page_min = min((safe_float(x.get("changepercent")) for x in items), default=0)
+            if page_min < 2.5:
+                break
+        except Exception as e:
+            print(f"Sina page {page} error: {e}")
+            break
+
+    if not sina_items:
+        return []
+
+    print(f"Sina: {len(sina_items)} candidates ≥2.5% chg")
+
+    # Enrich with Tencent for trading metrics (confirmed working from non-China IPs)
+    symbol_map = {item["symbol"]: item for item in sina_items}
+    all_symbols = list(symbol_map.keys())
+    results = []
+
+    for i in range(0, len(all_symbols), 80):
+        batch = all_symbols[i:i + 80]
+        try:
+            r = _req.get(f"http://qt.gtimg.cn/q={','.join(batch)}", timeout=10)
+            for seg in r.text.strip().split(";"):
+                if "~" not in seg or "=" not in seg:
+                    continue
+                m = re.search(r'v_(\w+)="([^"]+)"', seg)
+                if not m:
+                    continue
+                qtcode = m.group(1)
+                if qtcode not in symbol_map:
+                    continue
+                parts = m.group(2).split("~")
+                if len(parts) < 40:
+                    continue
+                price = safe_float(parts[3])
+                if price <= 0:
+                    continue
+                nmc = symbol_map[qtcode]["nmc"]  # 万元 → *1e4 → 元
+                results.append({
+                    "f2":  price,
+                    "f3":  safe_float(parts[32]),         # 涨跌幅%
+                    "f5":  safe_float(parts[36]),         # 成交量(手)
+                    "f6":  safe_float(parts[37]),         # 成交额(元)
+                    "f8":  safe_float(parts[38]),         # 换手率%
+                    "f10": safe_float(parts[49]) if len(parts) > 49 and safe_float(parts[49]) < 30 else 0,  # 量比
+                    "f12": qtcode[2:],                    # 纯代码
+                    "f13": 1 if qtcode[:2] == "sh" else 0,
+                    "f14": symbol_map[qtcode]["name"],
+                    "f20": 0,
+                    "f21": nmc * 1e4,                    # 万元→元，同 EastMoney f21 单位
+                })
+        except Exception as e:
+            print(f"Tencent batch {i//80} error: {e}")
+
+    print(f"Sina+Tencent final: {len(results)} stocks")
+    return results
+
+
+def get_em_stocks(limit: int = 500) -> list:
+    """Try EastMoney first; fall back to Sina + Tencent"""
+    result = _get_em_stocks(limit)
+    if result:
+        return result
+    return _get_sina_stocks()
 
 
 # ── 涨停基因：20日内是否有涨停 ──────────────────────────────────
@@ -89,9 +187,11 @@ def run_scan() -> dict:
     raw = get_em_stocks(500)
 
     if not raw:
-        return {"error": "无法获取行情数据，EastMoney API 可能受限", "stocks": [],
-                "index_chg": 0, "total_found": 0, "elapsed": 0,
-                "scan_time": datetime.now().strftime("%H:%M:%S")}
+        return {
+            "error": "无法获取行情数据，EastMoney 和 Sina Finance API 均不可用",
+            "stocks": [], "index_chg": 0, "total_found": 0, "elapsed": 0,
+            "scan_time": datetime.now().strftime("%H:%M:%S"),
+        }
 
     candidates = []
     for s in raw:
@@ -112,7 +212,7 @@ def run_scan() -> dict:
         if price <= 0:
             continue
 
-        # ① 涨幅 3-5%（核心硬条件，不满足直接跳过）
+        # ① 涨幅 3-5%（核心硬条件）
         if not (3.0 <= chg_pct <= 5.0):
             continue
 
@@ -125,7 +225,7 @@ def run_scan() -> dict:
         # ④ 流通市值 50-200亿
         cap_ok = 50.0 <= float_cap <= 200.0
 
-        # ⑥ 分时均线：股价 ≥ VWAP（成交额/成交手数）
+        # ⑥ 分时均线：股价 ≥ VWAP
         if volume > 0 and amount > 0:
             vwap = amount / (volume * 100)
             vwap_ok = price >= vwap
