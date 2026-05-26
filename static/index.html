@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="一夜持股">
+<title>一夜持股法选股</title>
+<style>
+:root{
+  --bg:#0d0d0f;--card:#16181c;--card2:#1e2026;--border:#2a2d35;
+  --text:#e8eaed;--dim:#6b7280;--accent:#4f8ef7;
+  --buy:#26a69a;--sell:#ef5350;--warn:#ffa726;--gold:#f5c842;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,'PingFang SC','Helvetica Neue',sans-serif;font-size:14px;padding-bottom:env(safe-area-inset-bottom)}
+/* header */
+.header{background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;position:sticky;top:0;z-index:100;display:flex;justify-content:space-between;align-items:center}
+.header-left h1{font-size:15px;font-weight:700}
+.header-left p{font-size:11px;color:var(--dim);margin-top:1px}
+.header-right{text-align:right;font-size:11px}
+#clockEl{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+/* tabs */
+.tabs{display:flex;background:var(--card);border-bottom:1px solid var(--border)}
+.tab{flex:1;padding:11px;text-align:center;font-size:13px;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-content{display:none;padding:12px}
+.tab-content.active{display:block}
+/* banner */
+.banner{padding:9px 12px;border-radius:10px;font-size:12px;margin-bottom:10px;display:none}
+.banner.warn{background:#2a1e0d;border:1px solid var(--warn);color:var(--warn);display:block}
+.banner.info{background:#0d1a2a;border:1px solid var(--accent);color:var(--accent);display:block}
+.banner.err{background:#2a0d0d;border:1px solid var(--sell);color:var(--sell);display:block}
+/* index bar */
+.index-bar{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.index-bar .label{font-size:11px;color:var(--dim)}
+.index-bar .val{font-size:15px;font-weight:700}
+/* scan button */
+.scan-btn{width:100%;padding:14px;border-radius:12px;border:none;font-size:15px;font-weight:700;cursor:pointer;background:var(--accent);color:#fff;margin-bottom:10px;transition:opacity .15s}
+.scan-btn:disabled{opacity:.4;cursor:not-allowed}
+.scan-btn:active{opacity:.8}
+/* result meta */
+.result-meta{font-size:11px;color:var(--dim);margin-bottom:8px;display:flex;justify-content:space-between}
+/* stock card */
+.stock-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.stock-name{font-size:14px;font-weight:700}
+.stock-code{font-size:11px;color:var(--dim);margin-top:2px}
+.card-right{text-align:right}
+.chg-val{font-size:16px;font-weight:800;color:var(--buy)}
+.score-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;margin-top:3px}
+.s7{background:#1a3a1a;color:var(--gold)}
+.s6{background:#0d2a1e;color:var(--buy)}
+.s5{background:#1a2040;color:var(--accent)}
+.s4,.s3{background:var(--card2);color:var(--dim)}
+/* stats row */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px;font-size:11px}
+.stat-item span:first-child{color:var(--dim)}
+/* criteria chips */
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{padding:3px 7px;border-radius:6px;font-size:10px;font-weight:600;white-space:nowrap}
+.chip.pass{background:#0d2a1e;color:var(--buy)}
+.chip.fail{background:#1e2026;color:var(--dim)}
+/* strategy card */
+.rule-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
+.rule-title{font-size:13px;font-weight:700;margin-bottom:10px;color:var(--accent)}
+.rule-item{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;line-height:1.5}
+.rule-item:last-child{border-bottom:none}
+.rule-no{width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.rule-content b{color:var(--text)}
+.rule-content span{color:var(--dim)}
+/* flow card */
+.flow{display:flex;overflow-x:auto;gap:8px;padding-bottom:4px;margin-bottom:10px}
+.flow-step{flex-shrink:0;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;text-align:center;min-width:80px}
+.flow-time{font-size:11px;color:var(--accent);font-weight:700;margin-bottom:4px}
+.flow-icon{font-size:20px;margin-bottom:4px}
+.flow-label{font-size:11px;font-weight:600}
+.flow-sub{font-size:10px;color:var(--dim);margin-top:2px}
+.flow-arrow{flex-shrink:0;display:flex;align-items:center;color:var(--dim);font-size:18px;padding-top:10px}
+/* empty */
+.empty{text-align:center;padding:40px 20px;color:var(--dim);font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>一夜持股法选股</h1>
+    <p>杨永兴七大硬标准 · 尾盘精选</p>
+  </div>
+  <div class="header-right">
+    <div id="clockEl">--:--:--</div>
+    <div id="indexEl" style="color:var(--dim)">沪指 --</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('scan')">扫描选股</div>
+  <div class="tab" onclick="switchTab('strategy')">策略说明</div>
+</div>
+
+<!-- 扫描 Tab -->
+<div class="tab-content active" id="tab-scan">
+  <div id="timeBanner" class="banner"></div>
+
+  <div class="index-bar">
+    <div><div class="label">上证指数</div><div class="val" id="indexVal">--</div></div>
+    <div style="text-align:right"><div class="label">最佳入场时间</div><div style="font-size:13px;font-weight:600;color:var(--warn)">14:50 尾盘</div></div>
+  </div>
+
+  <button class="scan-btn" id="scanBtn" onclick="doScan()">开始扫描</button>
+
+  <div class="result-meta" id="resultMeta" style="display:none"></div>
+  <div id="errorBanner" class="banner err" style="display:none"></div>
+  <div id="stockList"></div>
+</div>
+
+<!-- 策略 Tab -->
+<div class="tab-content" id="tab-strategy">
+  <div class="rule-card">
+    <div class="rule-title">核心流程</div>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-time">14:30</div>
+        <div class="flow-icon">🔍</div>
+        <div class="flow-label">选股观察</div>
+        <div class="flow-sub">开始筛选</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-time">14:50</div>
+        <div class="flow-icon">🛒</div>
+        <div class="flow-label">精准入场</div>
+        <div class="flow-sub">尾盘买入</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-time">09:30</div>
+        <div class="flow-icon">📈</div>
+        <div class="flow-label">次日开盘</div>
+        <div class="flow-sub">观察走势</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-time">10:00</div>
+        <div class="flow-icon">🚪</div>
+        <div class="flow-label">果断离场</div>
+        <div class="flow-sub">无论涨跌</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rule-card">
+    <div class="rule-title">七大选股硬标准</div>
+    <div class="rule-item"><div class="rule-no">1</div><div class="rule-content"><b>涨幅 3%–5%</b><br><span>太弱没关注度，太强（封板）追涨风险大</span></div></div>
+    <div class="rule-item"><div class="rule-no">2</div><div class="rule-content"><b>换手率 5%–10%</b><br><span>太低是死水，太高是主力出货信号</span></div></div>
+    <div class="rule-item"><div class="rule-no">3</div><div class="rule-content"><b>量比 &gt; 1</b><br><span>有量能配合，次日才有溢价预期</span></div></div>
+    <div class="rule-item"><div class="rule-no">4</div><div class="rule-content"><b>流通市值 50–200亿</b><br><span>盘子太大难拉升，太小流动性差</span></div></div>
+    <div class="rule-item"><div class="rule-no">5</div><div class="rule-content"><b>涨停基因</b><br><span>20个交易日内有过涨停，自带赚钱记忆</span></div></div>
+    <div class="rule-item"><div class="rule-no">6</div><div class="rule-content"><b>分时均线上方</b><br><span>股价全程在均线之上，多头持续占优</span></div></div>
+    <div class="rule-item"><div class="rule-no">7</div><div class="rule-content"><b>强于大盘</b><br><span>涨幅超过沪指，说明个股有独立行情</span></div></div>
+  </div>
+
+  <div class="rule-card">
+    <div class="rule-title">铁律纪律</div>
+    <div class="rule-item"><div class="rule-no" style="background:var(--buy)">✓</div><div class="rule-content"><b>次日 10:00 前必卖</b><br><span>无论涨停还是低开，不贪婪不恋战</span></div></div>
+    <div class="rule-item"><div class="rule-no" style="background:var(--buy)">✓</div><div class="rule-content"><b>目标每次 1%–3%</b><br><span>积小胜为大胜，复利长期致胜</span></div></div>
+    <div class="rule-item"><div class="rule-no" style="background:var(--sell)">!</div><div class="rule-content"><b>风险提示</b><br><span>熊市效果大打折扣；量化冲击难以应对；切勿追涨已封板个股</span></div></div>
+  </div>
+</div>
+
+<script>
+// ── 时钟 ──────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clockEl').textContent = now.toTimeString().slice(0,8);
+  updateTimeBanner(now);
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+function updateTimeBanner(now) {
+  const h = now.getHours(), m = now.getMinutes();
+  const mins = h * 60 + m;
+  const banner = document.getElementById('timeBanner');
+  const inMorning = mins >= 9*60+30 && mins <= 11*60+30;
+  const inAfternoon = mins >= 13*60 && mins < 15*60;
+  const inWindow = mins >= 14*60+30 && mins < 15*60;
+  const isClosed = mins >= 15*60 || (mins < 9*60+30);
+
+  if (isClosed) {
+    banner.className = 'banner warn';
+    banner.textContent = '⚠️ 非交易时段，可预先查看候选股（数据为昨日收盘）';
+  } else if (inWindow) {
+    banner.className = 'banner info';
+    banner.textContent = '✅ 当前处于最佳选股时段（14:30–15:00），可以扫描入场';
+  } else if (inAfternoon) {
+    banner.className = 'banner warn';
+    banner.textContent = '⏰ 建议 14:30 后再扫描，此时全天形态尚未定型';
+  } else if (inMorning) {
+    banner.className = 'banner warn';
+    banner.textContent = '⏰ 早盘波动大，一夜持股法最佳入场时间为 14:50 尾盘';
+  } else {
+    banner.className = 'banner';
+    banner.style.display = 'none';
+  }
+}
+
+// ── 沪指 ──────────────────────────────────────────────────────
+async function refreshIndex() {
+  try {
+    const d = await fetch('/api/index').then(r => r.json());
+    const chg = d.chg || 0;
+    const el = document.getElementById('indexVal');
+    el.textContent = (chg >= 0 ? '+' : '') + chg.toFixed(2) + '%';
+    el.style.color = chg > 0 ? 'var(--buy)' : chg < 0 ? 'var(--sell)' : 'var(--dim)';
+    document.getElementById('indexEl').textContent = '沪指 ' + (chg >= 0 ? '+' : '') + chg.toFixed(2) + '%';
+    document.getElementById('indexEl').style.color = chg > 0 ? 'var(--buy)' : chg < 0 ? 'var(--sell)' : 'var(--dim)';
+  } catch(e) {}
+}
+refreshIndex();
+setInterval(refreshIndex, 60000);
+
+// ── Tab ───────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', ['scan','strategy'][i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ── 扫描 ──────────────────────────────────────────────────────
+async function doScan() {
+  const btn = document.getElementById('scanBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ 扫描中（约10–20秒）…';
+  document.getElementById('errorBanner').style.display = 'none';
+  document.getElementById('resultMeta').style.display = 'none';
+
+  try {
+    const data = await fetch('/api/scan').then(r => r.json());
+
+    if (data.error) {
+      const eb = document.getElementById('errorBanner');
+      eb.textContent = '❌ ' + data.error;
+      eb.style.display = 'block';
+      return;
+    }
+
+    renderResults(data);
+  } catch(e) {
+    const eb = document.getElementById('errorBanner');
+    eb.textContent = '❌ 请求失败：' + e.message;
+    eb.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '重新扫描';
+  }
+}
+
+// ── 渲染结果 ──────────────────────────────────────────────────
+const CRITERIA_DEF = [
+  { key: 'chg',        label: '涨幅3-5%' },
+  { key: 'turnover',   label: '换手5-10%' },
+  { key: 'vol_ratio',  label: '量比>1' },
+  { key: 'cap',        label: '市值50-200亿' },
+  { key: 'limit_gene', label: '涨停基因' },
+  { key: 'vwap',       label: '均线上方' },
+  { key: 'stronger',   label: '强于大盘' },
+];
+
+const SCORE_LABEL = {7:'7/7 完美', 6:'6/7 极佳', 5:'5/7 关注', 4:'4/7 参考', 3:'3/7 参考'};
+
+function renderResults(data) {
+  const meta = document.getElementById('resultMeta');
+  meta.style.display = 'flex';
+  meta.innerHTML = `<span>找到 <b>${data.total_found}</b> 只候选 · 扫描 ${data.total_scanned} 只</span><span>耗时 ${data.elapsed}s · ${data.scan_time}</span>`;
+
+  const list = document.getElementById('stockList');
+  if (!data.stocks.length) {
+    list.innerHTML = '<div class="empty">暂无符合条件的股票<br><small>当前可能非交易时段或市场偏弱</small></div>';
+    return;
+  }
+
+  list.innerHTML = data.stocks.map(s => {
+    const c = s.criteria;
+    const score = s.score;
+    const chips = CRITERIA_DEF.map(def =>
+      `<span class="chip ${c[def.key] ? 'pass' : 'fail'}">${c[def.key] ? '✓' : '✗'} ${def.label}</span>`
+    ).join('');
+
+    return `
+    <div class="stock-card">
+      <div class="card-top">
+        <div>
+          <div class="stock-name">${s.name}</div>
+          <div class="stock-code">${s.code}</div>
+        </div>
+        <div class="card-right">
+          <div class="chg-val">+${s.chg_pct.toFixed(2)}%</div>
+          <div class="score-badge s${score}">${SCORE_LABEL[score] || score+'/7'}</div>
+        </div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-item"><span>换手率 </span><b>${s.turnover.toFixed(1)}%</b></div>
+        <div class="stat-item"><span>量比 </span><b>${s.vol_ratio.toFixed(2)}</b></div>
+        <div class="stat-item"><span>流通市值 </span><b>${s.float_cap}亿</b></div>
+      </div>
+      <div class="chips">${chips}</div>
+    </div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>
