@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import concurrent.futures
 import re
+import socket
 import threading
 import time
 from datetime import datetime
@@ -11,6 +12,8 @@ from math import isnan
 
 import requests
 from flask import Flask, jsonify, send_from_directory
+
+socket.setdefaulttimeout(8)
 
 app = Flask(__name__, static_folder="static")
 
@@ -125,7 +128,9 @@ def _tencent_batch_scan(qtcodes: list[str], chg_min: float = 2.5) -> list[dict]:
 
     batches = [qtcodes[i:i + BATCH] for i in range(0, len(qtcodes), BATCH)]
     with concurrent.futures.ThreadPoolExecutor(max_workers=WORKERS) as ex:
-        ex.map(fetch, batches)
+        futures = [ex.submit(fetch, b) for b in batches]
+        for f in concurrent.futures.as_completed(futures, timeout=120):
+            pass  # results collected via lock in fetch()
 
     print(f"Tencent scan: {len(results)} stocks (chg>={chg_min}%) from {len(qtcodes)} codes")
     return results
