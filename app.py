@@ -41,27 +41,47 @@ def get_index_chg() -> float:
 
 # ── A 股代码段 ────────────────────────────────────────────────
 def _gen_astock_qtcodes() -> list[str]:
+    """
+    只扫活跃代码段，避免触发腾讯反爬。
+    ~2200 只：沪主板高活跃段 + 深主板核心段 + 创业板 + 科创板。
+    """
     pairs: list[str] = []
-    for n in range(600000, 604000):   # 沪主板（活跃段）
+    for n in range(600000, 600800):   # 沪主板核心（600000-600799）
         pairs.append(f"sh{n}")
-    for n in range(688000, 689000):   # 科创板
+    for n in range(601000, 601500):
         pairs.append(f"sh{n}")
-    for n in range(1, 3000):          # 深主板+中小板
+    for n in range(603000, 603500):
+        pairs.append(f"sh{n}")
+    for n in range(688000, 688800):   # 科创板
+        pairs.append(f"sh{n}")
+    for n in range(1, 1000):          # 深主板（000001-000999）
         pairs.append(f"sz{str(n).zfill(6)}")
-    for n in range(300000, 302000):   # 创业板
+    for n in range(2001, 2500):       # 深中小板（002001-002499）
+        pairs.append(f"sz{str(n).zfill(6)}")
+    for n in range(300000, 301000):   # 创业板（300000-300999）
         pairs.append(f"sz{n}")
     return pairs
 
 
 # ── 腾讯行情批量扫描（ThreadPoolExecutor，真正并发）──────────────
 def _tencent_batch_scan(qtcodes: list[str], chg_min: float = 2.5) -> list[dict]:
-    BATCH = 80
+    """
+    限速扫描：BATCH=50, WORKERS=5，避免触发腾讯反爬。
+    ~2200 codes / 50 = 44 批次，5 线程 ≈ 9 轮 × ~2s = ~18s。
+    """
+    BATCH = 50
+    WORKERS = 5
     results: list[dict] = []
     lock = threading.Lock()
 
     def fetch(batch: list[str]) -> None:
         try:
-            r = _req.get(f"http://qt.gtimg.cn/q={','.join(batch)}", timeout=10)
+            sess = requests.Session()
+            sess.headers.update({
+                "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15",
+                "Referer": "https://finance.qq.com",
+            })
+            r = sess.get(f"http://qt.gtimg.cn/q={','.join(batch)}", timeout=10)
             for seg in r.text.strip().split(";"):
                 if "~" not in seg or "=" not in seg:
                     continue
@@ -100,14 +120,14 @@ def _tencent_batch_scan(qtcodes: list[str], chg_min: float = 2.5) -> list[dict]:
                         "f12": code, "f13": mkt_code, "f14": name,
                         "f20": 0, "f21": float_cap * 1e8,
                     })
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Tencent batch error: {e}")
 
     batches = [qtcodes[i:i + BATCH] for i in range(0, len(qtcodes), BATCH)]
-    with concurrent.futures.ThreadPoolExecutor(max_workers=25) as ex:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=WORKERS) as ex:
         ex.map(fetch, batches)
 
-    print(f"Tencent scan: {len(results)} stocks with chg>={chg_min}% from {len(qtcodes)} codes")
+    print(f"Tencent scan: {len(results)} stocks (chg>={chg_min}%) from {len(qtcodes)} codes")
     return results
 
 
