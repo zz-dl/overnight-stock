@@ -39,39 +39,46 @@ def get_index_chg() -> float:
 
 
 # ── EastMoney 多页获取涨幅榜（最多 500 只）─────────────────────
-def _fetch_eastmoney_gainers(max_stocks: int = 500) -> list[dict]:
+def _fetch_eastmoney_gainers(pages: int = 5) -> list[dict]:
     """
-    分页拉取 EastMoney 涨幅榜，Render 海外 IP 单页限 100 条，
-    最多拉 5 页拼成 500 只，覆盖 3-5% 甜蜜点。
+    并行拉取 EastMoney 涨幅榜多页。
+    Page 1 只有 >5.7% 股票，3-5% 甜蜜点在 Page 2-4，必须并行取全。
     """
     all_data: list[dict] = []
-    page_size = 100
-    for pn in range(1, (max_stocks // page_size) + 2):
+    page_results: dict = {}
+    lock = threading.Lock()
+
+    def fetch_page(pn: int) -> None:
         try:
             r = _req.get(
                 "https://push2.eastmoney.com/api/qt/clist/get",
                 params={
-                    "fid": "f3", "po": 1, "pz": page_size, "pn": pn,
+                    "fid": "f3", "po": 1, "pz": 100, "pn": pn,
                     "np": 1, "fltt": 2, "invt": 2,
                     "fs": "m:1+t:2,m:0+t:6,m:0+t:80,m:1+t:23",
                     "fields": "f2,f3,f5,f6,f8,f10,f12,f13,f14,f20,f21",
                     "ut": "bd1d9ddb04089700cf9c27f6f7426281",
                 },
-                timeout=8,
+                timeout=10,
             )
             page = r.json().get("data", {}).get("diff", []) or []
-            if not page:
-                break
-            all_data.extend(page)
-            if len(all_data) >= max_stocks:
-                break
-            # stop early if we've already passed the 3% zone
-            if page and safe_float(page[-1].get("f3")) < 2.0:
-                break
+            with lock:
+                page_results[pn] = page
+                print(f"EastMoney page {pn}: {len(page)} stocks")
         except Exception as e:
             print(f"EastMoney page {pn} failed: {e}")
-            break
-    print(f"EastMoney total: {len(all_data)} stocks")
+
+    threads = [threading.Thread(target=fetch_page, args=(pn,), daemon=True)
+               for pn in range(1, pages + 1)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=12)
+
+    for pn in range(1, pages + 1):
+        all_data.extend(page_results.get(pn, []))
+
+    print(f"EastMoney total: {len(all_data)} stocks across {pages} pages")
     return all_data
 
 
