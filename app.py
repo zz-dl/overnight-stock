@@ -38,25 +38,52 @@ def get_index_chg() -> float:
         return 0.0
 
 
-# ── A 股代码段（腾讯行情可访问，不依赖东财/新浪） ─────────────
+# ── EastMoney 多页获取涨幅榜（最多 500 只）─────────────────────
+def _fetch_eastmoney_gainers(max_stocks: int = 500) -> list[dict]:
+    """
+    分页拉取 EastMoney 涨幅榜，Render 海外 IP 单页限 100 条，
+    最多拉 5 页拼成 500 只，覆盖 3-5% 甜蜜点。
+    """
+    all_data: list[dict] = []
+    page_size = 100
+    for pn in range(1, (max_stocks // page_size) + 2):
+        try:
+            r = _req.get(
+                "https://push2.eastmoney.com/api/qt/clist/get",
+                params={
+                    "fid": "f3", "po": 1, "pz": page_size, "pn": pn,
+                    "np": 1, "fltt": 2, "invt": 2,
+                    "fs": "m:1+t:2,m:0+t:6,m:0+t:80,m:1+t:23",
+                    "fields": "f2,f3,f5,f6,f8,f10,f12,f13,f14,f20,f21",
+                    "ut": "bd1d9ddb04089700cf9c27f6f7426281",
+                },
+                timeout=8,
+            )
+            page = r.json().get("data", {}).get("diff", []) or []
+            if not page:
+                break
+            all_data.extend(page)
+            if len(all_data) >= max_stocks:
+                break
+            # stop early if we've already passed the 3% zone
+            if page and safe_float(page[-1].get("f3")) < 2.0:
+                break
+        except Exception as e:
+            print(f"EastMoney page {pn} failed: {e}")
+            break
+    print(f"EastMoney total: {len(all_data)} stocks")
+    return all_data
+
+
+# ── A 股代码段（腾讯行情备用）────────────────────────────────────
 def _gen_astock_qtcodes() -> list[str]:
-    """
-    生成 A 股全量候选代码。返回腾讯格式如 'sh600519'。
-    只覆盖实际有效的代码段，Tencent 对无效代码返回空数据，自动过滤。
-    """
     pairs: list[str] = []
-    # 沪市主板
     for n in range(600000, 608000):
         pairs.append(f"sh{n}")
-    # 沪市科创板
     for n in range(688000, 689000):
         pairs.append(f"sh{n}")
-    # 深市主板（含中小板，已合并）
-    for n in range(1, 2000):
+    for n in range(1, 4000):
         pairs.append(f"sz{str(n).zfill(6)}")
-    for n in range(2000, 4000):
-        pairs.append(f"sz{str(n).zfill(6)}")
-    # 深市创业板
     for n in range(300000, 302000):
         pairs.append(f"sz{n}")
     return pairs
@@ -64,10 +91,7 @@ def _gen_astock_qtcodes() -> list[str]:
 
 # ── 腾讯行情批量查询 ──────────────────────────────────────────
 def _tencent_batch_scan(qtcodes: list[str], chg_min: float = 2.5) -> list[dict]:
-    """
-    分批并行查询腾讯行情，只返回涨幅 >= chg_min 的股票。
-    腾讯每批最多 80 只，20 个并发线程。
-    """
+    """分批并行查询腾讯行情，只返回涨幅 >= chg_min 的股票。"""
     BATCH = 60
     WORKERS = 20
     results: list[dict] = []
@@ -95,15 +119,14 @@ def _tencent_batch_scan(qtcodes: list[str], chg_min: float = 2.5) -> list[dict]:
                 name = parts[1]
                 if not name or "ST" in name.upper():
                     continue
-                volume = safe_float(parts[36])   # 手
-                amount = safe_float(parts[37])   # 元
-                turnover = safe_float(parts[38]) # 换手率%
+                volume = safe_float(parts[36])
+                amount = safe_float(parts[37])
+                turnover = safe_float(parts[38])
                 vol_ratio = (
                     safe_float(parts[49])
                     if len(parts) > 49 and 0 < safe_float(parts[49]) < 30
                     else 0.0
                 )
-                # 流通市值(亿) = 成交量(手) × 100 / (换手率/100) × 股价 / 1e8
                 if turnover > 0.01:
                     float_cap = volume * 10000 * price / (turnover * 1e8)
                 else:
@@ -113,17 +136,10 @@ def _tencent_batch_scan(qtcodes: list[str], chg_min: float = 2.5) -> list[dict]:
                 mkt_code = 1 if prefix == "sh" else 0
                 with lock:
                     results.append({
-                        "f2": price,
-                        "f3": chg_pct,
-                        "f5": volume,
-                        "f6": amount,
-                        "f8": turnover,
-                        "f10": vol_ratio,
-                        "f12": code,
-                        "f13": mkt_code,
-                        "f14": name,
-                        "f20": 0,
-                        "f21": float_cap * 1e8,  # 元（与 EastMoney f21 单位一致）
+                        "f2": price, "f3": chg_pct, "f5": volume,
+                        "f6": amount, "f8": turnover, "f10": vol_ratio,
+                        "f12": code, "f13": mkt_code, "f14": name,
+                        "f20": 0, "f21": float_cap * 1e8,
                     })
         except Exception:
             pass
@@ -145,63 +161,43 @@ def _tencent_batch_scan(qtcodes: list[str], chg_min: float = 2.5) -> list[dict]:
 
 
 def get_all_stocks() -> list[dict]:
-    """
-    尝试 EastMoney（快） → 失败则用 Tencent 全扫（稳）。
-    Tencent 已证明从 Render 海外服务器可访问（指数显示正常即可）。
-    """
-    # 先试 EastMoney（中国境内访问时更快）
-    try:
-        r = _req.get(
-            "https://push2.eastmoney.com/api/qt/clist/get",
-            params={
-                "fid": "f3", "po": 1, "pz": 500, "pn": 1,
-                "np": 1, "fltt": 2, "invt": 2,
-                "fs": "m:1+t:2,m:0+t:6,m:0+t:80,m:1+t:23",
-                "fields": "f2,f3,f5,f6,f8,f10,f12,f13,f14,f20,f21",
-                "ut": "bd1d9ddb04089700cf9c27f6f7426281",
-            },
-            timeout=8,
-        )
-        data = r.json().get("data", {}).get("diff", []) or []
-        if data:
-            print(f"EastMoney OK: {len(data)} stocks")
-            return data
-    except Exception as e:
-        print(f"EastMoney failed: {e}")
-
-    # 备用：腾讯全量扫描（海外IP可用）
-    print("Falling back to Tencent full scan...")
+    """EastMoney 多页优先，失败则 Tencent 全扫兜底。"""
+    data = _fetch_eastmoney_gainers(max_stocks=500)
+    if data:
+        return data
+    print("EastMoney completely failed, falling back to Tencent full scan...")
     codes = _gen_astock_qtcodes()
     return _tencent_batch_scan(codes, chg_min=2.5)
 
 
-# ── 涨停基因：20日内是否有涨停 ──────────────────────────────────
-def check_limit_gene(code: str, mkt_code: int, days: int = 20) -> bool:
+# ── 扫描结果缓存（后台定时刷新）────────────────────────────────
+_cache: dict = {}
+_cache_lock = threading.Lock()
+_cache_ts: float = 0.0
+_scan_running = False
+
+
+def _do_scan_bg() -> None:
+    global _cache, _cache_ts, _scan_running
+    _scan_running = True
     try:
-        r = _req.get(
-            "https://push2his.eastmoney.com/api/qt/stock/kline/get",
-            params={
-                "secid": f"{mkt_code}.{code}",
-                "fields1": "f1,f2,f3,f4,f5",
-                "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61",
-                "klt": 101, "fqt": 0, "end": "20500101",
-                "lmt": days + 3,
-            },
-            timeout=8,
-        )
-        klines = (r.json().get("data") or {}).get("klines") or []
-        threshold = 19.5 if code.startswith("688") else 9.5
-        for kline in klines[-days:]:
-            parts = kline.split(",")
-            if len(parts) >= 9 and safe_float(parts[8]) >= threshold:
-                return True
-        return False
-    except Exception:
-        return False
+        result = _run_scan_internal()
+        with _cache_lock:
+            _cache = result
+            _cache_ts = time.time()
+    except Exception as e:
+        print(f"Background scan error: {e}")
+    finally:
+        _scan_running = False
+
+
+def _start_bg_scan() -> None:
+    if not _scan_running:
+        threading.Thread(target=_do_scan_bg, daemon=True).start()
 
 
 # ── 主扫描逻辑 ─────────────────────────────────────────────────
-def run_scan() -> dict:
+def _run_scan_internal() -> dict:
     t0 = time.time()
     index_chg = get_index_chg()
     raw = get_all_stocks()
@@ -225,9 +221,9 @@ def run_scan() -> dict:
         chg_pct   = safe_float(s.get("f3"))
         turnover  = safe_float(s.get("f8"))
         vol_ratio = safe_float(s.get("f10"))
-        float_cap = safe_float(s.get("f21")) / 1e8   # 元 → 亿
-        volume    = safe_float(s.get("f5"))           # 手
-        amount    = safe_float(s.get("f6"))           # 元
+        float_cap = safe_float(s.get("f21")) / 1e8
+        volume    = safe_float(s.get("f5"))
+        amount    = safe_float(s.get("f6"))
         mkt_code  = int(s.get("f13") or 0)
 
         if price <= 0:
@@ -304,6 +300,31 @@ def run_scan() -> dict:
     }
 
 
+# ── 涨停基因：20日内是否有涨停 ──────────────────────────────────
+def check_limit_gene(code: str, mkt_code: int, days: int = 20) -> bool:
+    try:
+        r = _req.get(
+            "https://push2his.eastmoney.com/api/qt/stock/kline/get",
+            params={
+                "secid": f"{mkt_code}.{code}",
+                "fields1": "f1,f2,f3,f4,f5",
+                "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61",
+                "klt": 101, "fqt": 0, "end": "20500101",
+                "lmt": days + 3,
+            },
+            timeout=8,
+        )
+        klines = (r.json().get("data") or {}).get("klines") or []
+        threshold = 19.5 if code.startswith("688") else 9.5
+        for kline in klines[-days:]:
+            parts = kline.split(",")
+            if len(parts) >= 9 and safe_float(parts[8]) >= threshold:
+                return True
+        return False
+    except Exception:
+        return False
+
+
 # ── Flask 路由 ─────────────────────────────────────────────────
 @app.route("/")
 def index():
@@ -312,7 +333,33 @@ def index():
 
 @app.route("/api/scan")
 def api_scan():
-    return jsonify(run_scan())
+    global _cache_ts
+    now = time.time()
+    cache_age = now - _cache_ts
+
+    # 缓存有效期 4 分钟；立即触发后台更新（不阻塞请求）
+    if cache_age > 240:
+        _start_bg_scan()
+
+    # 有缓存直接返回，同时告知是否正在刷新
+    if _cache:
+        result = dict(_cache)
+        result["refreshing"] = _scan_running
+        result["cache_age"] = int(cache_age)
+        return jsonify(result)
+
+    # 首次请求：同步等待（最多 55s，避免 gunicorn 60s 超时）
+    _do_scan_bg()
+    with _cache_lock:
+        return jsonify(dict(_cache))
+
+
+@app.route("/api/scan/force")
+def api_scan_force():
+    """强制重新扫描（同步，等待结果）。"""
+    _do_scan_bg()
+    with _cache_lock:
+        return jsonify(dict(_cache))
 
 
 @app.route("/api/index")

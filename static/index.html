@@ -109,7 +109,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'PingFang 
     <div style="text-align:right"><div class="label">最佳入场时间</div><div style="font-size:13px;font-weight:600;color:var(--warn)">14:50 尾盘</div></div>
   </div>
 
-  <button class="scan-btn" id="scanBtn" onclick="doScan()">开始扫描</button>
+  <button class="scan-btn" id="scanBtn" onclick="doScan(true)">重新扫描</button>
 
   <div class="result-meta" id="resultMeta" style="display:none"></div>
   <div id="errorBanner" class="banner err" style="display:none"></div>
@@ -232,15 +232,16 @@ function switchTab(name) {
 }
 
 // ── 扫描 ──────────────────────────────────────────────────────
-async function doScan() {
+async function doScan(force) {
   const btn = document.getElementById('scanBtn');
   btn.disabled = true;
-  btn.textContent = '⏳ 扫描中（约10–20秒）…';
+  btn.textContent = '⏳ 扫描中…';
   document.getElementById('errorBanner').style.display = 'none';
   document.getElementById('resultMeta').style.display = 'none';
 
   try {
-    const data = await fetch('/api/scan').then(r => r.json());
+    const url = force ? '/api/scan/force' : '/api/scan';
+    const data = await fetch(url).then(r => r.json());
 
     if (data.error) {
       const eb = document.getElementById('errorBanner');
@@ -258,6 +259,13 @@ async function doScan() {
     btn.disabled = false;
     btn.textContent = '重新扫描';
   }
+}
+
+async function autoLoad() {
+  try {
+    const data = await fetch('/api/scan').then(r => r.json());
+    if (!data.error) renderResults(data);
+  } catch(e) {}
 }
 
 // ── 渲染结果 ──────────────────────────────────────────────────
@@ -312,6 +320,8 @@ function renderResults(data) {
     </div>`;
   }).join('');
 }
+
+window.addEventListener('load', autoLoad);
 </script>
 </body>
 </html>
