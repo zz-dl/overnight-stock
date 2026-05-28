@@ -232,40 +232,63 @@ function switchTab(name) {
 }
 
 // ── 扫描 ──────────────────────────────────────────────────────
-async function doScan(force) {
-  const btn = document.getElementById('scanBtn');
-  btn.disabled = true;
-  btn.textContent = '⏳ 扫描中…';
-  document.getElementById('errorBanner').style.display = 'none';
-  document.getElementById('resultMeta').style.display = 'none';
+let _pollTimer = null;
 
+function _showScanning(msg) {
+  const meta = document.getElementById('resultMeta');
+  meta.style.display = 'flex';
+  meta.innerHTML = `<span>⏳ ${msg || '扫描中…'}</span>`;
+  document.getElementById('stockList').innerHTML = '';
+}
+
+async function _fetchAndRender(url) {
+  const btn = document.getElementById('scanBtn');
   try {
-    const url = force ? '/api/scan/force' : '/api/scan';
     const data = await fetch(url).then(r => r.json());
+
+    if (data.scanning || data.refreshing) {
+      _showScanning(data.message || '扫描中，30秒后自动刷新…');
+      btn.disabled = false;
+      btn.textContent = '刷新结果';
+      if (_pollTimer) clearTimeout(_pollTimer);
+      _pollTimer = setTimeout(() => _fetchAndRender('/api/scan'), 20000);
+      return;
+    }
+
+    if (_pollTimer) { clearTimeout(_pollTimer); _pollTimer = null; }
 
     if (data.error) {
       const eb = document.getElementById('errorBanner');
       eb.textContent = '❌ ' + data.error;
       eb.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = '重新扫描';
       return;
     }
 
     renderResults(data);
+    btn.disabled = false;
+    btn.textContent = '重新扫描';
   } catch(e) {
     const eb = document.getElementById('errorBanner');
     eb.textContent = '❌ 请求失败：' + e.message;
     eb.style.display = 'block';
-  } finally {
     btn.disabled = false;
     btn.textContent = '重新扫描';
   }
 }
 
+async function doScan(force) {
+  const btn = document.getElementById('scanBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ 扫描中…';
+  document.getElementById('errorBanner').style.display = 'none';
+  if (_pollTimer) { clearTimeout(_pollTimer); _pollTimer = null; }
+  await _fetchAndRender(force ? '/api/scan/force' : '/api/scan');
+}
+
 async function autoLoad() {
-  try {
-    const data = await fetch('/api/scan').then(r => r.json());
-    if (!data.error) renderResults(data);
-  } catch(e) {}
+  await _fetchAndRender('/api/scan');
 }
 
 // ── 渲染结果 ──────────────────────────────────────────────────
