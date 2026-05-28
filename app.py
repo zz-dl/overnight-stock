@@ -317,6 +317,33 @@ def api_index():
     return jsonify({"chg": round(chg, 2), "time": datetime.now().strftime("%H:%M:%S")})
 
 
+@app.route("/api/debug/tencent")
+def api_debug_tencent():
+    """测试 Tencent API 在此服务器上是否可访问，返回前 5 只股票数据。"""
+    import time as _t
+    t0 = _t.time()
+    test_codes = ["sh600519", "sh600036", "sz000001", "sz300750", "sh688981"]
+    try:
+        r = _req.get(f"http://qt.gtimg.cn/q={','.join(test_codes)}", timeout=10)
+        results = []
+        for seg in r.text.strip().split(";"):
+            m = re.search(r'v_(\w+)="([^"]+)"', seg)
+            if not m:
+                continue
+            parts = m.group(2).split("~")
+            if len(parts) < 33:
+                continue
+            results.append({"code": m.group(1), "name": parts[1], "price": parts[3], "chg": parts[32]})
+        return jsonify({
+            "ok": True, "elapsed": round(_t.time() - t0, 2),
+            "count": len(results), "stocks": results,
+            "scan_running": _scan_running, "cache_ts": int(_cache_ts),
+            "cache_scanned": _cache.get("total_scanned", 0) if _cache else 0,
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e), "elapsed": round(_t.time() - t0, 2)})
+
+
 # 启动时立即开始后台扫描（减少冷启动等待）
 _start_bg_scan()
 
