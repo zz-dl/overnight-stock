@@ -46,22 +46,22 @@ def get_index_chg() -> float:
 def _gen_astock_qtcodes() -> list[str]:
     """
     只扫活跃代码段，避免触发腾讯反爬。
-    ~2200 只：沪主板高活跃段 + 深主板核心段 + 创业板 + 科创板。
+    ~1800 只：沪主板核心段 + 深主板核心段 + 创业板核心 + 科创板核心。
     """
     pairs: list[str] = []
-    for n in range(600000, 600800):   # 沪主板核心（600000-600799）
+    for n in range(600000, 600600):   # 沪主板核心（600000-600599）
         pairs.append(f"sh{n}")
-    for n in range(601000, 601500):
+    for n in range(601000, 601400):   # 沪主板扩展（601000-601399）
         pairs.append(f"sh{n}")
-    for n in range(603000, 603500):
+    for n in range(603000, 603300):   # 沪主板扩展（603000-603299）
         pairs.append(f"sh{n}")
-    for n in range(688000, 688800):   # 科创板
+    for n in range(688000, 688300):   # 科创板核心（688000-688299）
         pairs.append(f"sh{n}")
-    for n in range(1, 1000):          # 深主板（000001-000999）
+    for n in range(1, 700):           # 深主板核心（000001-000699）
         pairs.append(f"sz{str(n).zfill(6)}")
-    for n in range(2001, 2500):       # 深中小板（002001-002499）
+    for n in range(2001, 2400):       # 深中小板（002001-002399）
         pairs.append(f"sz{str(n).zfill(6)}")
-    for n in range(300000, 301000):   # 创业板（300000-300999）
+    for n in range(300000, 300600):   # 创业板核心（300000-300599）
         pairs.append(f"sz{n}")
     return pairs
 
@@ -129,8 +129,11 @@ def _tencent_batch_scan(qtcodes: list[str], chg_min: float = 2.5) -> list[dict]:
     batches = [qtcodes[i:i + BATCH] for i in range(0, len(qtcodes), BATCH)]
     with concurrent.futures.ThreadPoolExecutor(max_workers=WORKERS) as ex:
         futures = [ex.submit(fetch, b) for b in batches]
-        for f in concurrent.futures.as_completed(futures, timeout=120):
-            pass  # results collected via lock in fetch()
+        try:
+            for f in concurrent.futures.as_completed(futures, timeout=90):
+                pass  # results collected via lock in fetch()
+        except concurrent.futures.TimeoutError:
+            print(f"Tencent scan timed out, using partial results ({len(results)} so far)")
 
     print(f"Tencent scan: {len(results)} stocks (chg>={chg_min}%) from {len(qtcodes)} codes")
     return results
