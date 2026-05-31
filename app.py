@@ -127,13 +127,15 @@ def _tencent_batch_scan(qtcodes: list[str], chg_min: float = 2.5) -> list[dict]:
             print(f"Tencent batch error: {e}")
 
     batches = [qtcodes[i:i + BATCH] for i in range(0, len(qtcodes), BATCH)]
-    with concurrent.futures.ThreadPoolExecutor(max_workers=WORKERS) as ex:
-        futures = [ex.submit(fetch, b) for b in batches]
-        try:
-            for f in concurrent.futures.as_completed(futures, timeout=90):
-                pass  # results collected via lock in fetch()
-        except concurrent.futures.TimeoutError:
-            print(f"Tencent scan timed out, using partial results ({len(results)} so far)")
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=WORKERS)
+    futures = [executor.submit(fetch, b) for b in batches]
+    try:
+        for f in concurrent.futures.as_completed(futures, timeout=90):
+            pass  # results collected via lock in fetch()
+    except concurrent.futures.TimeoutError:
+        print(f"Tencent scan timed out, using partial results ({len(results)} so far)")
+    finally:
+        executor.shutdown(wait=False)  # don't block on hung socket threads
 
     print(f"Tencent scan: {len(results)} stocks (chg>={chg_min}%) from {len(qtcodes)} codes")
     return results
