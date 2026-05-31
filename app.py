@@ -347,6 +347,14 @@ def api_index():
     return jsonify({"chg": round(chg, 2), "time": datetime.now().strftime("%H:%M:%S")})
 
 
+APP_VERSION = "v4-shutdown-nowait"
+
+
+@app.route("/api/version")
+def api_version():
+    return jsonify({"version": APP_VERSION, "scan_running": _scan_running, "cache_ts": int(_cache_ts)})
+
+
 @app.route("/api/debug/tencent")
 def api_debug_tencent():
     """测试 Tencent API 在此服务器上是否可访问，返回前 5 只股票数据。"""
