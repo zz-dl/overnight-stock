@@ -268,31 +268,11 @@ def _run_scan_internal() -> dict:
     }
 
 
-# ── 后台缓存 ───────────────────────────────────────────────────
+# ── 同步缓存（在请求线程内扫描，避免 Render 后台线程 HTTP 限制）──
 _cache: dict = {}
 _cache_lock = threading.Lock()
 _cache_ts: float = 0.0
-_scan_running = False
-
-
-def _do_scan_bg() -> None:
-    global _cache, _cache_ts, _scan_running
-    if _scan_running:
-        return
-    _scan_running = True
-    try:
-        result = _run_scan_internal()
-        with _cache_lock:
-            _cache = result
-            _cache_ts = time.time()
-    except Exception as e:
-        print(f"Background scan error: {e}")
-    finally:
-        _scan_running = False
-
-
-def _start_bg_scan() -> None:
-    threading.Thread(target=_do_scan_bg, daemon=True).start()
+CACHE_TTL = 300  # 5 分钟缓存有效期
 
 
 # ── Flask 路由 ─────────────────────────────────────────────────
@@ -303,26 +283,20 @@ def index():
 
 @app.route("/api/scan")
 def api_scan():
+    global _cache, _cache_ts
     now = time.time()
-    cache_age = now - _cache_ts
+    with _cache_lock:
+        if _cache and (now - _cache_ts) < CACHE_TTL:
+            result = dict(_cache)
+            result["cache_age"] = int(now - _cache_ts)
+            return jsonify(result)
 
-    if cache_age > 300 and not _scan_running:
-        _start_bg_scan()
-
-    if _cache:
-        result = dict(_cache)
-        result["refreshing"] = _scan_running
-        result["cache_age"] = int(cache_age)
-        return jsonify(result)
-
-    # 无缓存：后台扫描中，让客户端轮询
-    return jsonify({
-        "scanning": True,
-        "stocks": [],
-        "total_scanned": 0,
-        "total_found": 0,
-        "message": "正在扫描全市场A股，约30秒后自动刷新…",
-    })
+    # 缓存过期或无缓存：同步扫描（在本请求线程中执行）
+    result = _run_scan_internal()
+    with _cache_lock:
+        _cache = result
+        _cache_ts = time.time()
+    return jsonify(result)
 
 
 @app.route("/api/scan/force")
@@ -331,14 +305,11 @@ def api_scan_force():
     with _cache_lock:
         _cache = {}
         _cache_ts = 0.0
-    _start_bg_scan()
-    return jsonify({
-        "scanning": True,
-        "stocks": [],
-        "total_scanned": 0,
-        "total_found": 0,
-        "message": "已触发重新扫描，约30秒后点击刷新结果…",
-    })
+    result = _run_scan_internal()
+    with _cache_lock:
+        _cache = result
+        _cache_ts = time.time()
+    return jsonify(result)
 
 
 @app.route("/api/index")
@@ -347,12 +318,12 @@ def api_index():
     return jsonify({"chg": round(chg, 2), "time": datetime.now().strftime("%H:%M:%S")})
 
 
-APP_VERSION = "v4-shutdown-nowait"
+APP_VERSION = "v5-sync-scan"
 
 
 @app.route("/api/version")
 def api_version():
-    return jsonify({"version": APP_VERSION, "scan_running": _scan_running, "cache_ts": int(_cache_ts)})
+    return jsonify({"version": APP_VERSION, "cache_ts": int(_cache_ts)})
 
 
 @app.route("/api/debug/tencent")
@@ -375,7 +346,7 @@ def api_debug_tencent():
         return jsonify({
             "ok": True, "elapsed": round(_t.time() - t0, 2),
             "count": len(results), "stocks": results,
-            "scan_running": _scan_running, "cache_ts": int(_cache_ts),
+            "cache_ts": int(_cache_ts),
             "cache_scanned": _cache.get("total_scanned", 0) if _cache else 0,
         })
     except Exception as e:
@@ -400,14 +371,10 @@ def api_debug_batch():
         return jsonify({
             "ok": True, "elapsed": round(_t.time() - t0, 2),
             "batch_size": 50, "valid_segments": count,
-            "scan_running": _scan_running,
         })
     except Exception as e:
         return jsonify({"ok": False, "error": str(e), "elapsed": round(_t.time() - t0, 2)})
 
-
-# 启动时立即开始后台扫描（减少冷启动等待）
-_start_bg_scan()
 
 if __name__ == "__main__":
     import os
