@@ -7,11 +7,17 @@ import re
 import socket
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, date
 from math import isnan
 
 import requests
 from flask import Flask, jsonify, send_from_directory
+
+from sim import (
+    gh_read, gh_write, settle_trades,
+    update_criteria_stats, auto_adjust_criteria,
+    _default_stats, CRITERIA_KEYS,
+)
 
 socket.setdefaulttimeout(8)
 
@@ -166,12 +172,62 @@ def check_limit_gene(code: str, mkt_code: int, days: int = 20) -> bool:
         return False
 
 
+# ── 模拟交易：结算 + 记录 ─────────────────────────────────────
+def _sim_run_settlement_and_record(scan_stocks: list) -> None:
+    """在扫描完成后：结算昨日买入，更新胜率，记录今日 6/7+ 候选。"""
+    today = date.today().isoformat()
+
+    # 读取当前数据
+    pending, pending_sha     = gh_read("sim_data/pending.json")
+    trades_data, trades_sha  = gh_read("sim_data/trades.json")
+    stats, stats_sha         = gh_read("sim_data/criteria_stats.json")
+
+    if not stats:
+        stats = _default_stats()
+    if not trades_data:
+        trades_data = {"trades": []}
+
+    # 结算昨日持仓
+    if pending and pending.get("date") and pending["date"] != today:
+        price_map = {s["code"]: s["price"] for s in scan_stocks}
+        settled = settle_trades(pending, price_map, sell_date=today)
+        if settled:
+            trades_data["trades"] = (trades_data.get("trades", []) + settled)[-90:]
+            stats = update_criteria_stats(stats, settled)
+            stats = auto_adjust_criteria(stats)
+            gh_write("sim_data/trades.json",        trades_data, trades_sha, f"sim: trades {today}")
+            gh_write("sim_data/criteria_stats.json", stats,       stats_sha,  f"sim: stats {today}")
+        gh_write("sim_data/pending.json", {}, pending_sha, f"sim: clear pending {today}")
+
+    # 记录今日 6/7+ 候选（基于活跃标准）
+    active = set(stats.get("active_criteria", list(CRITERIA_KEYS)))
+    n_active = len(active)
+    min_score = max(n_active - 1, 3)  # 至少通过 n-1 条活跃标准
+
+    sim_candidates = [
+        {"code": s["code"], "name": s["name"], "price": s["price"],
+         "criteria": s["criteria"], "score": s["score"]}
+        for s in scan_stocks
+        if s.get("score", 0) >= min_score
+    ]
+
+    if sim_candidates:
+        new_pending = {"date": today, "scan_time": datetime.now().strftime("%H:%M:%S"),
+                       "positions": sim_candidates}
+        _, p_sha = gh_read("sim_data/pending.json")
+        gh_write("sim_data/pending.json", new_pending, p_sha, f"sim: pending {today}")
+
+
 # ── 主扫描逻辑 ─────────────────────────────────────────────────
 def _run_scan_internal() -> dict:
     t0 = time.time()
     index_chg = get_index_chg()
 
-    # Tencent 全量扫描（海外 IP 可用，EastMoney 海外只给 100 条无法覆盖 3-5% 区间）
+    # 读取活跃标准
+    stats, _ = gh_read("sim_data/criteria_stats.json")
+    active_criteria = set((stats or {}).get("active_criteria", list(CRITERIA_KEYS)))
+
+    # Tencent 全量扫描
     codes = _gen_astock_qtcodes()
     raw = _tencent_batch_scan(codes, chg_min=2.5)
 
@@ -202,26 +258,27 @@ def _run_scan_internal() -> dict:
         if price <= 0:
             continue
 
-        # ① 涨幅 3-5%
+        # ① 涨幅 3-5%（核心条件，始终保留）
         if not (3.0 <= chg_pct <= 5.0):
             continue
 
-        # ② 换手率 5-10%
-        to_ok = 5.0 <= turnover <= 10.0
-        # ③ 量比 > 1
-        vr_ok = vol_ratio > 1.0
-        # ④ 流通市值 50-200亿
-        cap_ok = float_cap > 0 and (50.0 <= float_cap <= 200.0)
-        # ⑥ 分时均线：股价 ≥ VWAP
+        to_ok       = (5.0 <= turnover <= 10.0)  if "turnover"   in active_criteria else False
+        vr_ok       = (vol_ratio > 1.0)           if "vol_ratio"  in active_criteria else False
+        cap_ok      = (float_cap > 0 and 50.0 <= float_cap <= 200.0) if "cap" in active_criteria else False
+        stronger_ok = (index_chg > 0 and chg_pct > index_chg)        if "stronger" in active_criteria else False
+
         if volume > 0 and amount > 0:
             vwap = amount / (volume * 100)
-            vwap_ok = price >= vwap
+            vwap_ok = (price >= vwap) if "vwap" in active_criteria else False
         else:
             vwap, vwap_ok = price, False
-        # ⑦ 强于大盘
-        stronger_ok = index_chg > 0 and chg_pct > index_chg
 
-        if sum([to_ok, vr_ok, cap_ok, vwap_ok, stronger_ok]) < 2:
+        active_checks = [v for k, v in [
+            ("turnover", to_ok), ("vol_ratio", vr_ok), ("cap", cap_ok),
+            ("vwap", vwap_ok), ("stronger", stronger_ok),
+        ] if k in active_criteria]
+
+        if len(active_checks) > 0 and sum(active_checks) < 2:
             continue
 
         candidates.append({
@@ -241,10 +298,13 @@ def _run_scan_internal() -> dict:
     top = candidates[:40]
 
     def _check(stock: dict) -> None:
-        stock["criteria"]["limit_gene"] = check_limit_gene(
-            stock["code"], stock["mkt_code"]
+        if "limit_gene" in active_criteria:
+            stock["criteria"]["limit_gene"] = check_limit_gene(
+                stock["code"], stock["mkt_code"]
+            )
+        stock["score"] = sum(
+            v for k, v in stock["criteria"].items() if k in active_criteria
         )
-        stock["score"] = sum(stock["criteria"].values())
 
     threads = [threading.Thread(target=_check, args=(s,), daemon=True) for s in top]
     for t in threads:
@@ -254,17 +314,27 @@ def _run_scan_internal() -> dict:
 
     for s in candidates:
         if s["score"] == 0:
-            s["score"] = sum(s["criteria"].values())
+            s["score"] = sum(
+                v for k, v in s["criteria"].items() if k in active_criteria
+            )
 
     candidates.sort(key=lambda x: (-x["score"], -x["vol_ratio"]))
+    result_stocks = candidates[:30]
+
+    # 模拟交易：结算 + 记录（静默，不影响扫描结果）
+    try:
+        _sim_run_settlement_and_record(result_stocks)
+    except Exception as e:
+        print(f"sim settlement error (non-fatal): {e}")
 
     return {
-        "stocks": candidates[:30],
+        "stocks": result_stocks,
         "index_chg": round(index_chg, 2),
         "total_scanned": len(raw),
         "total_found": len(candidates),
         "elapsed": round(time.time() - t0, 1),
         "scan_time": datetime.now().strftime("%H:%M:%S"),
+        "active_criteria": sorted(active_criteria),
     }
 
 
@@ -310,6 +380,19 @@ def api_scan_force():
         _cache = result
         _cache_ts = time.time()
     return jsonify(result)
+
+
+@app.route("/api/sim")
+def api_sim():
+    pending, _  = gh_read("sim_data/pending.json")
+    trades_data, _ = gh_read("sim_data/trades.json")
+    stats, _    = gh_read("sim_data/criteria_stats.json")
+    trades = (trades_data or {}).get("trades", [])
+    return jsonify({
+        "pending":  pending or {},
+        "trades":   trades[-20:],
+        "stats":    stats or _default_stats(),
+    })
 
 
 @app.route("/api/index")

@@ -97,6 +97,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'PingFang 
 
 <div class="tabs">
   <div class="tab active" onclick="switchTab('scan')">扫描选股</div>
+  <div class="tab" onclick="switchTab('replay')">📊 复盘</div>
   <div class="tab" onclick="switchTab('strategy')">策略说明</div>
 </div>
 
@@ -114,6 +115,11 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'PingFang 
   <div class="result-meta" id="resultMeta" style="display:none"></div>
   <div id="errorBanner" class="banner err" style="display:none"></div>
   <div id="stockList"></div>
+</div>
+
+<!-- 复盘 Tab -->
+<div class="tab-content" id="tab-replay">
+  <div id="replayContent"><div class="empty">⏳ 加载复盘数据…</div></div>
 </div>
 
 <!-- 策略 Tab -->
@@ -223,12 +229,108 @@ refreshIndex();
 setInterval(refreshIndex, 60000);
 
 // ── Tab ───────────────────────────────────────────────────────
+let _replayLoaded = false;
 function switchTab(name) {
   document.querySelectorAll('.tab').forEach((t, i) => {
-    t.classList.toggle('active', ['scan','strategy'][i] === name);
+    t.classList.toggle('active', ['scan','replay','strategy'][i] === name);
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'replay' && !_replayLoaded) { _replayLoaded = true; loadReplay(); }
+}
+
+// ── 复盘 Tab ──────────────────────────────────────────────────
+const CRITERIA_LABELS = {
+  chg:'涨幅3-5%', turnover:'换手5-10%', vol_ratio:'量比>1',
+  cap:'市值50-200亿', limit_gene:'涨停基因', vwap:'均线上方', stronger:'强于大盘'
+};
+
+async function loadReplay() {
+  const el = document.getElementById('replayContent');
+  try {
+    const d = await fetch('/api/sim').then(r => r.json());
+    renderReplay(d, el);
+  } catch(e) {
+    el.innerHTML = `<div class="empty">❌ 加载失败: ${e.message}</div>`;
+  }
+}
+
+function renderReplay(d, el) {
+  const stats  = d.stats  || {};
+  const trades = d.trades || [];
+  const pending = d.pending || {};
+  const criteriaStats = stats.stats || {};
+  const active = new Set(stats.active_criteria || Object.keys(CRITERIA_LABELS));
+  let html = '';
+
+  // ① 当前模拟仓
+  const positions = (pending.positions || []);
+  html += `<div class="rule-card"><div class="rule-title">📋 当前模拟仓（${pending.date || '暂无'}）</div>`;
+  if (!positions.length) {
+    html += `<div class="empty" style="padding:12px">暂无持仓，扫描后自动记录 6/7+ 候选股</div>`;
+  } else {
+    positions.forEach(p => {
+      const passed = Object.entries(p.criteria||{}).filter(([,v])=>v).map(([k])=>CRITERIA_LABELS[k]||k);
+      html += `<div class="rule-item" style="display:block;padding:8px 0">
+        <b style="color:var(--accent)">${p.name}</b>
+        <span style="color:var(--dim);font-size:11px;margin-left:6px">${p.code} · 买入价 ${p.price}</span>
+        <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">
+          ${passed.map(l=>`<span class="chip pass">✓ ${l}</span>`).join('')}
+        </div>
+      </div>`;
+    });
+  }
+  html += `</div>`;
+
+  // ② 最近交易记录
+  const recent = [...trades].reverse().slice(0, 10);
+  const wins = trades.filter(t => t.return_pct > 0).length;
+  const total = trades.length;
+  const winRate = total > 0 ? (wins/total*100).toFixed(0) : '--';
+  html += `<div class="rule-card"><div class="rule-title">📈 最近交易（胜率 ${winRate}%，共 ${total} 笔）</div>`;
+  if (!recent.length) {
+    html += `<div class="empty" style="padding:12px">暂无历史交易记录</div>`;
+  } else {
+    recent.forEach(t => {
+      const c = t.return_pct > 0 ? 'var(--buy)' : 'var(--sell)';
+      const sign = t.return_pct > 0 ? '+' : '';
+      html += `<div class="row" style="padding:7px 0">
+        <div>
+          <div style="font-size:13px;font-weight:700">${t.name}</div>
+          <div style="font-size:10px;color:var(--dim)">${t.buy_date} → ${t.sell_date}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:14px;font-weight:800;color:${c}">${sign}${t.return_pct}%</div>
+          <div style="font-size:10px;color:var(--dim)">${t.buy_price} → ${t.sell_price}</div>
+        </div>
+      </div>`;
+    });
+  }
+  html += `</div>`;
+
+  // ③ 标准胜率分析
+  html += `<div class="rule-card"><div class="rule-title">🎯 七大标准胜率（滚动30笔）</div>`;
+  Object.entries(CRITERIA_LABELS).forEach(([key, label]) => {
+    const s = criteriaStats[key] || {};
+    const wr = s.win_rate != null ? (s.win_rate * 100).toFixed(0) : '--';
+    const n = (s.wins||0) + (s.losses||0);
+    const isActive = active.has(key);
+    const barColor = !isActive ? 'var(--sell)' : s.win_rate >= 0.5 ? 'var(--buy)' : s.win_rate >= 0.4 ? 'var(--warn)' : 'var(--sell)';
+    const barW = n > 0 ? Math.min(s.win_rate * 100, 100) : 0;
+    html += `<div style="padding:6px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-size:12px;font-weight:600;${!isActive?'color:var(--sell);text-decoration:line-through':''}">${label}</span>
+        <span style="font-size:12px;font-weight:700;color:${barColor}">${wr}% ${n>0?'('+n+'笔)':''}</span>
+      </div>
+      <div style="height:5px;background:var(--border);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${barW}%;background:${barColor};border-radius:3px"></div>
+      </div>
+      ${!isActive ? '<div style="font-size:10px;color:var(--sell);margin-top:2px">⚠️ 已自动停用（胜率持续低于40%）</div>' : ''}
+    </div>`;
+  });
+  html += `</div>`;
+
+  el.innerHTML = html;
 }
 
 // ── 扫描 ──────────────────────────────────────────────────────
