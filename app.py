@@ -84,7 +84,7 @@ def _tencent_batch_scan(qtcodes: list[str], chg_min: float = 2.5) -> list[dict]:
                 "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15",
                 "Referer": "https://finance.qq.com",
             })
-            r = sess.get(f"http://qt.gtimg.cn/q={','.join(batch)}", timeout=10)
+            r = sess.get(f"http://qt.gtimg.cn/q={','.join(batch)}", timeout=(5, 8))
             for seg in r.text.strip().split(";"):
                 if "~" not in seg or "=" not in seg:
                     continue
@@ -369,6 +369,30 @@ def api_debug_tencent():
             "count": len(results), "stocks": results,
             "scan_running": _scan_running, "cache_ts": int(_cache_ts),
             "cache_scanned": _cache.get("total_scanned", 0) if _cache else 0,
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e), "elapsed": round(_t.time() - t0, 2)})
+
+
+@app.route("/api/debug/batch")
+def api_debug_batch():
+    """测试单个批量请求（50只股票），诊断批量扫描是否挂起。"""
+    import time as _t
+    t0 = _t.time()
+    # 用真实存在的股票代码组成一批
+    codes = [f"sh{600000+i}" for i in range(50)]
+    try:
+        sess = requests.Session()
+        sess.headers.update({
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15",
+            "Referer": "https://finance.qq.com",
+        })
+        r = sess.get(f"http://qt.gtimg.cn/q={','.join(codes)}", timeout=(5, 8))
+        count = sum(1 for seg in r.text.strip().split(";") if "~" in seg and "=" in seg)
+        return jsonify({
+            "ok": True, "elapsed": round(_t.time() - t0, 2),
+            "batch_size": 50, "valid_segments": count,
+            "scan_running": _scan_running,
         })
     except Exception as e:
         return jsonify({"ok": False, "error": str(e), "elapsed": round(_t.time() - t0, 2)})
