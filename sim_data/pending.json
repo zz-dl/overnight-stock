@@ -1,11 +1,11 @@
 {
   "date": "2026-06-01",
-  "scan_time": "04:33:01",
+  "scan_time": "05:45:04",
   "positions": [
     {
-      "code": "600488",
-      "name": "津药药业",
-      "price": 5.72,
+      "code": "002256",
+      "name": "兆新股份",
+      "price": 4.67,
       "criteria": {
         "chg": true,
         "turnover": true,
@@ -17,9 +17,9 @@
       "score": 5
     },
     {
-      "code": "002125",
-      "name": "湘潭电化",
-      "price": 15.26,
+      "code": "300244",
+      "name": "迪安诊断",
+      "price": 18.26,
       "criteria": {
         "chg": true,
         "turnover": true,
@@ -33,7 +33,35 @@
     {
       "code": "300364",
       "name": "中文在线",
-      "price": 26.55,
+      "price": 26.47,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": false
+      },
+      "score": 5
+    },
+    {
+      "code": "603267",
+      "name": "鸿远电子",
+      "price": 72.45,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": false
+      },
+      "score": 5
+    },
+    {
+      "code": "300031",
+      "name": "宝通科技",
+      "price": 24.42,
       "criteria": {
         "chg": true,
         "turnover": true,
@@ -61,35 +89,7 @@
     {
       "code": "600552",
       "name": "凯盛科技",
-      "price": 18.78,
-      "criteria": {
-        "chg": true,
-        "turnover": true,
-        "vol_ratio": true,
-        "cap": true,
-        "vwap": true,
-        "stronger": false
-      },
-      "score": 5
-    },
-    {
-      "code": "603119",
-      "name": "浙江荣泰",
-      "price": 68.29,
-      "criteria": {
-        "chg": true,
-        "turnover": true,
-        "vol_ratio": true,
-        "cap": true,
-        "vwap": true,
-        "stronger": false
-      },
-      "score": 5
-    },
-    {
-      "code": "300302",
-      "name": "同有科技",
-      "price": 49.35,
+      "price": 18.55,
       "criteria": {
         "chg": true,
         "turnover": true,
