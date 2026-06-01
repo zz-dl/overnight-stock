@@ -1,6 +1,6 @@
 {
   "date": "2026-06-01",
-  "scan_time": "05:45:04",
+  "scan_time": "05:45:07",
   "positions": [
     {
       "code": "002256",
@@ -19,7 +19,7 @@
     {
       "code": "300244",
       "name": "迪安诊断",
-      "price": 18.26,
+      "price": 18.27,
       "criteria": {
         "chg": true,
         "turnover": true,
@@ -33,7 +33,7 @@
     {
       "code": "300364",
       "name": "中文在线",
-      "price": 26.47,
+      "price": 26.46,
       "criteria": {
         "chg": true,
         "turnover": true,
@@ -47,7 +47,7 @@
     {
       "code": "603267",
       "name": "鸿远电子",
-      "price": 72.45,
+      "price": 72.57,
       "criteria": {
         "chg": true,
         "turnover": true,
