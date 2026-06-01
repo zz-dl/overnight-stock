@@ -1,11 +1,11 @@
 {
   "date": "2026-06-01",
-  "scan_time": "00:31:17",
+  "scan_time": "04:32:55",
   "positions": [
     {
-      "code": "002146",
-      "name": "荣盛发展",
-      "price": 1.3,
+      "code": "600488",
+      "name": "津药药业",
+      "price": 5.72,
       "criteria": {
         "chg": true,
         "turnover": true,
@@ -17,9 +17,9 @@
       "score": 5
     },
     {
-      "code": "000681",
-      "name": "视觉中国",
-      "price": 20.59,
+      "code": "002125",
+      "name": "湘潭电化",
+      "price": 15.26,
       "criteria": {
         "chg": true,
         "turnover": true,
@@ -31,9 +31,65 @@
       "score": 5
     },
     {
-      "code": "002317",
-      "name": "众生药业",
-      "price": 23.54,
+      "code": "300364",
+      "name": "中文在线",
+      "price": 26.55,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": false
+      },
+      "score": 5
+    },
+    {
+      "code": "600158",
+      "name": "中体产业",
+      "price": 11.71,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": false
+      },
+      "score": 5
+    },
+    {
+      "code": "600552",
+      "name": "凯盛科技",
+      "price": 18.78,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": false
+      },
+      "score": 5
+    },
+    {
+      "code": "603119",
+      "name": "浙江荣泰",
+      "price": 68.29,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": false
+      },
+      "score": 5
+    },
+    {
+      "code": "300302",
+      "name": "同有科技",
+      "price": 49.35,
       "criteria": {
         "chg": true,
         "turnover": true,
