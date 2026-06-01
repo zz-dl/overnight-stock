@@ -1,0 +1,48 @@
+{
+  "date": "2026-06-01",
+  "scan_time": "00:31:17",
+  "positions": [
+    {
+      "code": "002146",
+      "name": "荣盛发展",
+      "price": 1.3,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": false
+      },
+      "score": 5
+    },
+    {
+      "code": "000681",
+      "name": "视觉中国",
+      "price": 20.59,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": false
+      },
+      "score": 5
+    },
+    {
+      "code": "002317",
+      "name": "众生药业",
+      "price": 23.54,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": false
+      },
+      "score": 5
+    }
+  ]
+}
