@@ -288,29 +288,16 @@ def _run_scan_internal() -> dict:
             "vwap": round(vwap, 3), "mkt_code": mkt_code,
             "criteria": {
                 "chg": True, "turnover": to_ok, "vol_ratio": vr_ok,
-                "cap": cap_ok, "limit_gene": False,
-                "vwap": vwap_ok, "stronger": stronger_ok,
+                "cap": cap_ok, "vwap": vwap_ok, "stronger": stronger_ok,
             },
             "score": 0,
         })
 
-    # ⑤ 涨停基因（并行，最多 40 只）
-    top = candidates[:40]
-
-    def _check(stock: dict) -> None:
-        if "limit_gene" in active_criteria:
-            stock["criteria"]["limit_gene"] = check_limit_gene(
-                stock["code"], stock["mkt_code"]
-            )
-        stock["score"] = sum(
-            v for k, v in stock["criteria"].items() if k in active_criteria
+    # 计算评分（涨停基因已移除：回测显示胜率仅46.1%，低于基准2%，属于负效应标准）
+    for s in candidates:
+        s["score"] = sum(
+            v for k, v in s["criteria"].items() if k in active_criteria
         )
-
-    threads = [threading.Thread(target=_check, args=(s,), daemon=True) for s in top]
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join(timeout=12)
 
     for s in candidates:
         if s["score"] == 0:

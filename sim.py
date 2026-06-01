@@ -5,7 +5,7 @@ from math import isnan
 
 import requests
 
-CRITERIA_KEYS = ("chg", "turnover", "vol_ratio", "cap", "limit_gene", "vwap", "stronger")
+CRITERIA_KEYS = ("chg", "turnover", "vol_ratio", "cap", "vwap", "stronger")
 _WINDOW = 30
 _DEACTIVATE_THRESHOLD = 0.40
 _REACTIVATE_THRESHOLD = 0.50

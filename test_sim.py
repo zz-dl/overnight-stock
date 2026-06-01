@@ -149,20 +149,20 @@ class TestAutoAdjustCriteria(unittest.TestCase):
         }
 
     def test_criterion_below_40pct_gets_deactivated(self):
-        stats = self._stats({"limit_gene": 0.35})
+        stats = self._stats({"vwap": 0.35})
         result = auto_adjust_criteria(stats)
-        self.assertFalse(result["stats"]["limit_gene"]["active"])
-        self.assertNotIn("limit_gene", result["active_criteria"])
+        self.assertFalse(result["stats"]["vwap"]["active"])
+        self.assertNotIn("vwap", result["active_criteria"])
 
     def test_criterion_above_50pct_gets_reactivated(self):
-        stats = self._stats({"limit_gene": 0.55})
-        stats["stats"]["limit_gene"]["active"] = False
-        stats["active_criteria"].remove("limit_gene")
+        stats = self._stats({"vwap": 0.55})
+        stats["stats"]["vwap"]["active"] = False
+        stats["active_criteria"].remove("vwap")
 
         result = auto_adjust_criteria(stats)
 
-        self.assertTrue(result["stats"]["limit_gene"]["active"])
-        self.assertIn("limit_gene", result["active_criteria"])
+        self.assertTrue(result["stats"]["vwap"]["active"])
+        self.assertIn("vwap", result["active_criteria"])
 
     def test_never_deactivates_below_3_active(self):
         # Only 3 criteria left, all with bad win rates

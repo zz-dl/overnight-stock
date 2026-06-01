@@ -163,7 +163,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'PingFang 
     <div class="rule-item"><div class="rule-no">2</div><div class="rule-content"><b>换手率 5%–10%</b><br><span>太低是死水，太高是主力出货信号</span></div></div>
     <div class="rule-item"><div class="rule-no">3</div><div class="rule-content"><b>量比 &gt; 1</b><br><span>有量能配合，次日才有溢价预期</span></div></div>
     <div class="rule-item"><div class="rule-no">4</div><div class="rule-content"><b>流通市值 50–200亿</b><br><span>盘子太大难拉升，太小流动性差</span></div></div>
-    <div class="rule-item"><div class="rule-no">5</div><div class="rule-content"><b>涨停基因</b><br><span>20个交易日内有过涨停，自带赚钱记忆</span></div></div>
+    <div class="rule-item"><div class="rule-no" style="background:var(--sell);text-decoration:line-through">5</div><div class="rule-content" style="color:var(--dim)"><b style="text-decoration:line-through">涨停基因</b>（已移除）<br><span>回测30万笔：涨停基因股次日胜率仅46%，低于基准2%，属负效应标准</span></div></div>
     <div class="rule-item"><div class="rule-no">6</div><div class="rule-content"><b>分时均线上方</b><br><span>股价全程在均线之上，多头持续占优</span></div></div>
     <div class="rule-item"><div class="rule-no">7</div><div class="rule-content"><b>强于大盘</b><br><span>涨幅超过沪指，说明个股有独立行情</span></div></div>
   </div>
@@ -242,7 +242,7 @@ function switchTab(name) {
 // ── 复盘 Tab ──────────────────────────────────────────────────
 const CRITERIA_LABELS = {
   chg:'涨幅3-5%', turnover:'换手5-10%', vol_ratio:'量比>1',
-  cap:'市值50-200亿', limit_gene:'涨停基因', vwap:'均线上方', stronger:'强于大盘'
+  cap:'市值50-200亿', vwap:'均线上方', stronger:'强于大盘'
 };
 
 async function loadReplay() {
@@ -399,7 +399,6 @@ const CRITERIA_DEF = [
   { key: 'turnover',   label: '换手5-10%' },
   { key: 'vol_ratio',  label: '量比>1' },
   { key: 'cap',        label: '市值50-200亿' },
-  { key: 'limit_gene', label: '涨停基因' },
   { key: 'vwap',       label: '均线上方' },
   { key: 'stronger',   label: '强于大盘' },
 ];
