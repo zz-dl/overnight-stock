@@ -438,6 +438,25 @@ function renderResults(data) {
       `<span class="chip ${c[def.key] ? 'pass' : 'fail'}">${c[def.key] ? '✓' : '✗'} ${def.label}</span>`
     ).join('');
 
+    // 胜率进度条
+    const wr = s.est_win_rate || 0;
+    const wrColor = wr >= 52 ? 'var(--buy)' : wr >= 45 ? 'var(--warn)' : 'var(--sell)';
+    const wrBar = `
+      <div style="margin-top:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+          <span style="font-size:10px;color:var(--dim)">预估胜率</span>
+          <span style="font-size:12px;font-weight:700;color:${wrColor}">${wr}%</span>
+        </div>
+        <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+          <div style="height:100%;width:${wr}%;background:${wrColor};border-radius:2px"></div>
+        </div>
+      </div>`;
+
+    // 推荐理由
+    const reasons = (s.reasons || []).map(r =>
+      `<div style="font-size:10px;color:var(--dim);padding:2px 0">• ${r}</div>`
+    ).join('');
+
     return `
     <div class="stock-card">
       <div class="card-top">
@@ -447,7 +466,7 @@ function renderResults(data) {
         </div>
         <div class="card-right">
           <div class="chg-val">+${s.chg_pct.toFixed(2)}%</div>
-          <div class="score-badge s${score}">${SCORE_LABEL[score] || score+'/7'}</div>
+          <div class="score-badge s${score}">${SCORE_LABEL[score] || score+'/6'}</div>
         </div>
       </div>
       <div class="stats-row">
@@ -456,6 +475,8 @@ function renderResults(data) {
         <div class="stat-item"><span>流通市值 </span><b>${s.float_cap}亿</b></div>
       </div>
       <div class="chips">${chips}</div>
+      ${reasons ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">${reasons}</div>` : ''}
+      ${wrBar}
     </div>`;
   }).join('');
 }
