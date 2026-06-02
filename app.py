@@ -48,6 +48,37 @@ def get_index_chg() -> float:
         return 0.0
 
 
+def get_index_above_ma250() -> bool:
+    """
+    判断上证指数当前收盘是否在250日均线（年线）上方。
+    年线下方 = 结构性熊市，策略应暂停。
+    获取失败时默认返回 True（允许操作，避免误拦截）。
+    """
+    try:
+        r = _req.get(
+            "http://push2his.eastmoney.com/api/qt/stock/kline/get",
+            params={
+                "secid": "1.000001",
+                "fields1": "f1,f2,f3,f4,f5",
+                "fields2": "f51,f52,f53,f54,f55",
+                "klt": 101, "fqt": 0, "end": "20500101", "lmt": 260,
+            },
+            timeout=8,
+        )
+        klines = (r.json().get("data") or {}).get("klines") or []
+        if len(klines) < 250:
+            return True
+        closes = [safe_float(k.split(",")[2]) for k in klines[-250:]]
+        closes = [c for c in closes if c > 0]
+        if len(closes) < 200:
+            return True
+        ma250 = sum(closes) / len(closes)
+        current = closes[-1]
+        return current > ma250
+    except Exception:
+        return True  # 获取失败：默认允许，不误拦截
+
+
 # ── A 股代码段 ────────────────────────────────────────────────
 def _gen_astock_qtcodes() -> list[str]:
     """
@@ -282,10 +313,16 @@ def _run_scan_internal() -> dict:
     t0 = time.time()
     index_chg = get_index_chg()
 
+    # 年线（MA250）保护：结构性熊市暂停操作（30年回测：年线下方操作收益为负）
+    above_ma250 = get_index_above_ma250()
+
     # 今日市场胜率
     today_weekday = datetime.now().weekday()
     market_wr = calc_market_win_rate(index_chg, today_weekday, 1)
-    if index_chg < 0.5:
+    if not above_ma250:
+        market_cond = f"大盘在年线（MA250）下方 ⚠️ 结构性熊市，暂停买入"
+        market_wr = max(30, market_wr - 10)   # 年线下方胜率大幅下调
+    elif index_chg < 0.5:
         market_cond = f"大盘+{index_chg:.2f}%，涨幅偏弱，历史胜率偏低"
     elif index_chg < 1.0:
         market_cond = f"大盘+{index_chg:.2f}%，0.5-1.0% 历史最优区间"
@@ -293,6 +330,19 @@ def _run_scan_internal() -> dict:
         market_cond = f"大盘+{index_chg:.2f}%，涨幅较强，历史胜率尚可"
     else:
         market_cond = f"大盘+{index_chg:.2f}%，涨幅过大，次日谨慎追高"
+
+    # 年线下方：直接返回空结果，不扫描不买入
+    if not above_ma250:
+        return {
+            "stocks": [], "index_chg": round(index_chg, 2),
+            "total_scanned": 0, "total_found": 0,
+            "elapsed": round(time.time() - t0, 1),
+            "scan_time": datetime.now().strftime("%H:%M:%S"),
+            "active_criteria": sorted(active_criteria if 'active_criteria' in dir() else []),
+            "market_win_rate": market_wr,
+            "market_condition": market_cond,
+            "above_ma250": False,
+        }
 
     # 读取活跃标准
     stats, _ = gh_read("sim_data/criteria_stats.json")
@@ -415,6 +465,7 @@ def _run_scan_internal() -> dict:
         "active_criteria": sorted(active_criteria),
         "market_win_rate": market_wr,
         "market_condition": market_cond,
+        "above_ma250": above_ma250,
     }
 
 
