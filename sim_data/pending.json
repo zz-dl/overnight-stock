@@ -1,11 +1,11 @@
 {
   "date": "2026-06-02",
-  "scan_time": "06:15:47",
+  "scan_time": "06:15:54",
   "positions": [
     {
       "code": "603039",
       "name": "泛微网络",
-      "price": 41.59,
+      "price": 41.56,
       "criteria": {
         "chg": true,
         "turnover": true,
@@ -19,7 +19,7 @@
     {
       "code": "300461",
       "name": "田中精机",
-      "price": 49.64,
+      "price": 49.65,
       "criteria": {
         "chg": true,
         "turnover": true,
@@ -33,7 +33,7 @@
     {
       "code": "002213",
       "name": "大为股份",
-      "price": 34.28,
+      "price": 34.3,
       "criteria": {
         "chg": true,
         "turnover": true,
@@ -47,7 +47,7 @@
     {
       "code": "600184",
       "name": "光电股份",
-      "price": 26.77,
+      "price": 26.78,
       "criteria": {
         "chg": true,
         "turnover": true,
@@ -75,7 +75,7 @@
     {
       "code": "603011",
       "name": "合锻智能",
-      "price": 28.63,
+      "price": 28.57,
       "criteria": {
         "chg": true,
         "turnover": false,
@@ -117,7 +117,7 @@
     {
       "code": "002066",
       "name": "瑞泰科技",
-      "price": 24.44,
+      "price": 24.47,
       "criteria": {
         "chg": true,
         "turnover": false,
@@ -145,7 +145,7 @@
     {
       "code": "688227",
       "name": "品高股份",
-      "price": 83.41,
+      "price": 83.37,
       "criteria": {
         "chg": true,
         "turnover": true,
@@ -173,7 +173,7 @@
     {
       "code": "300201",
       "name": "海伦哲",
-      "price": 20.1,
+      "price": 20.11,
       "criteria": {
         "chg": true,
         "turnover": true,
@@ -187,7 +187,7 @@
     {
       "code": "002281",
       "name": "光迅科技",
-      "price": 214.31,
+      "price": 214.5,
       "criteria": {
         "chg": true,
         "turnover": true,
@@ -215,7 +215,7 @@
     {
       "code": "600498",
       "name": "烽火通信",
-      "price": 49.5,
+      "price": 49.49,
       "criteria": {
         "chg": true,
         "turnover": true,
@@ -229,7 +229,7 @@
     {
       "code": "300553",
       "name": "集智股份",
-      "price": 62.86,
+      "price": 62.95,
       "criteria": {
         "chg": true,
         "turnover": false,
@@ -243,21 +243,7 @@
     {
       "code": "002396",
       "name": "星网锐捷",
-      "price": 22.73,
-      "criteria": {
-        "chg": true,
-        "turnover": false,
-        "vol_ratio": true,
-        "cap": true,
-        "vwap": true,
-        "stronger": true
-      },
-      "score": 5
-    },
-    {
-      "code": "300221",
-      "name": "银禧科技",
-      "price": 14.03,
+      "price": 22.72,
       "criteria": {
         "chg": true,
         "turnover": false,
@@ -271,7 +257,7 @@
     {
       "code": "603031",
       "name": "安孚科技",
-      "price": 60.33,
+      "price": 60.35,
       "criteria": {
         "chg": true,
         "turnover": true,
@@ -285,7 +271,7 @@
     {
       "code": "000070",
       "name": "特发信息",
-      "price": 17.58,
+      "price": 17.59,
       "criteria": {
         "chg": true,
         "turnover": true,
@@ -299,7 +285,7 @@
     {
       "code": "600353",
       "name": "旭光电子",
-      "price": 23.23,
+      "price": 23.21,
       "criteria": {
         "chg": true,
         "turnover": true,
