@@ -1,6 +1,6 @@
 {
   "date": "2026-06-02",
-  "scan_time": "12:40:49",
+  "scan_time": "12:41:14",
   "positions": [
     {
       "code": "603039",
@@ -227,20 +227,6 @@
       "score": 5
     },
     {
-      "code": "300201",
-      "name": "海伦哲",
-      "price": 20.25,
-      "criteria": {
-        "chg": true,
-        "turnover": true,
-        "vol_ratio": true,
-        "cap": false,
-        "vwap": true,
-        "stronger": true
-      },
-      "score": 5
-    },
-    {
       "code": "300134",
       "name": "大富科技",
       "price": 10.43,
@@ -249,6 +235,20 @@
         "turnover": false,
         "vol_ratio": true,
         "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "score": 5
+    },
+    {
+      "code": "300201",
+      "name": "海伦哲",
+      "price": 20.25,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": false,
         "vwap": true,
         "stronger": true
       },
