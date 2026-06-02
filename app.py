@@ -282,6 +282,18 @@ def _run_scan_internal() -> dict:
     t0 = time.time()
     index_chg = get_index_chg()
 
+    # 今日市场胜率
+    today_weekday = datetime.now().weekday()
+    market_wr = calc_market_win_rate(index_chg, today_weekday, 1)
+    if index_chg < 0.5:
+        market_cond = f"大盘+{index_chg:.2f}%，涨幅偏弱，历史胜率偏低"
+    elif index_chg < 1.0:
+        market_cond = f"大盘+{index_chg:.2f}%，0.5-1.0% 历史最优区间"
+    elif index_chg < 2.0:
+        market_cond = f"大盘+{index_chg:.2f}%，涨幅较强，历史胜率尚可"
+    else:
+        market_cond = f"大盘+{index_chg:.2f}%，涨幅过大，次日谨慎追高"
+
     # 读取活跃标准
     stats, _ = gh_read("sim_data/criteria_stats.json")
     active_criteria = set((stats or {}).get("active_criteria", list(CRITERIA_KEYS)))
@@ -367,6 +379,12 @@ def _run_scan_internal() -> dict:
     candidates.sort(key=lambda x: (-x["score"], -x["vol_ratio"]))
     result_stocks = candidates[:30]
 
+    # 为每只股票注入胜率和推荐理由
+    for s in result_stocks:
+        excess = s["chg_pct"] / index_chg if index_chg > 0 else 0
+        s["est_win_rate"] = calc_stock_win_rate(market_wr, excess)
+        s["reasons"] = build_reasons(s["chg_pct"], index_chg, excess, market_wr)
+
     # 模拟交易：结算 + 记录（静默，不影响扫描结果）
     try:
         _sim_run_settlement_and_record(result_stocks)
@@ -381,6 +399,8 @@ def _run_scan_internal() -> dict:
         "elapsed": round(time.time() - t0, 1),
         "scan_time": datetime.now().strftime("%H:%M:%S"),
         "active_criteria": sorted(active_criteria),
+        "market_win_rate": market_wr,
+        "market_condition": market_cond,
     }
 
 
