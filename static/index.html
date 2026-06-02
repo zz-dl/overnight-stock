@@ -160,21 +160,31 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'PingFang 
   </div>
 
   <div class="rule-card">
-    <div class="rule-title">七大选股硬标准</div>
-    <div class="rule-item"><div class="rule-no">1</div><div class="rule-content"><b>涨幅 3%–5%</b><br><span>太弱没关注度，太强（封板）追涨风险大</span></div></div>
-    <div class="rule-item"><div class="rule-no">2</div><div class="rule-content"><b>换手率 5%–10%</b><br><span>太低是死水，太高是主力出货信号</span></div></div>
-    <div class="rule-item"><div class="rule-no">3</div><div class="rule-content"><b>量比 &gt; 1</b><br><span>有量能配合，次日才有溢价预期</span></div></div>
-    <div class="rule-item"><div class="rule-no">4</div><div class="rule-content"><b>流通市值 50–200亿</b><br><span>盘子太大难拉升，太小流动性差</span></div></div>
-    <div class="rule-item"><div class="rule-no" style="background:var(--sell);text-decoration:line-through">5</div><div class="rule-content" style="color:var(--dim)"><b style="text-decoration:line-through">涨停基因</b>（已移除）<br><span>回测30万笔：涨停基因股次日胜率仅46%，低于基准2%，属负效应标准</span></div></div>
-    <div class="rule-item"><div class="rule-no">6</div><div class="rule-content"><b>分时均线上方</b><br><span>股价全程在均线之上，多头持续占优</span></div></div>
-    <div class="rule-item"><div class="rule-no">7</div><div class="rule-content"><b>强于大盘</b><br><span>涨幅超过沪指，说明个股有独立行情</span></div></div>
+    <div class="rule-title">选股硬标准（基于30年历史回测优化）</div>
+    <div class="rule-item"><div class="rule-no">1</div><div class="rule-content"><b>大盘在年线（MA250）上方</b><br><span>年线下方 = 结构性熊市，30年回测证明此时策略无效，自动暂停</span></div></div>
+    <div class="rule-item"><div class="rule-no">2</div><div class="rule-content"><b>大盘当日涨幅 ≥ 0.5%</b><br><span>大盘微涨（&lt;0.5%）时历史胜率仅38%，属于无效操作区间</span></div></div>
+    <div class="rule-item"><div class="rule-no">3</div><div class="rule-content"><b>个股涨幅 3%–5%</b><br><span>甜蜜区间：有足够动能但未过热，追高风险可控</span></div></div>
+    <div class="rule-item"><div class="rule-no">4</div><div class="rule-content"><b>超额大盘 2.0–2.5 倍</b><br><span>30年最优区间（胜率51%）；超额过高(&gt;4x)反而次日容易回调</span></div></div>
+    <div class="rule-item"><div class="rule-no">5</div><div class="rule-content"><b>大盘5日均线上方</b><br><span>短期趋势向上时胜率高出8%，趋势向下坚决不操作</span></div></div>
+    <div class="rule-item"><div class="rule-no">6</div><div class="rule-content"><b>换手率 5%–10%</b><br><span>成交活跃但未过度换手，主力资金有序介入</span></div></div>
+    <div class="rule-item"><div class="rule-no">7</div><div class="rule-content"><b>流通市值 50–200亿</b><br><span>盘子适中，拉升容易，流动性充足</span></div></div>
+    <div class="rule-item"><div class="rule-no" style="background:var(--sell);text-decoration:line-through">✗</div><div class="rule-content" style="color:var(--dim)"><b style="text-decoration:line-through">涨停基因</b>（已移除）<br><span>回测证明负效应：胜率46%，低于基准2%</span></div></div>
+    <div class="rule-item"><div class="rule-no" style="background:var(--sell);text-decoration:line-through">✗</div><div class="rule-content" style="color:var(--dim)"><b style="text-decoration:line-through">量比 &gt; 1</b>（已移除）<br><span>回测证明反效应：量比高的股票次日胜率反而更低（44.9% vs 48.5%）</span></div></div>
+  </div>
+
+  <div class="rule-card">
+    <div class="rule-title">历史胜率数据（30年·3.2万笔）</div>
+    <div class="rule-item"><div class="rule-no" style="background:#1a3a1a;font-size:10px">📊</div><div class="rule-content"><b>整体胜率：46.4% → 49.8%</b>（加年线保护后）<br><span>均收益：+0.084% → +0.155%（次日开盘价，扣0.1%手续费）</span></div></div>
+    <div class="rule-item"><div class="rule-no" style="background:#1a3a1a;font-size:10px">🐂</div><div class="rule-content"><b>2007年牛市：胜率75%，均收益+1.83%</b><br><span>大行情中策略效果显著放大</span></div></div>
+    <div class="rule-item"><div class="rule-no" style="background:#1a3a1a;font-size:10px">📉</div><div class="rule-content"><b>2017年最差：胜率25.6%，均收益-0.46%</b><br><span>结构性慢熊最危险，年线保护可自动屏蔽</span></div></div>
   </div>
 
   <div class="rule-card">
     <div class="rule-title">铁律纪律</div>
     <div class="rule-item"><div class="rule-no" style="background:var(--buy)">✓</div><div class="rule-content"><b>次日 10:00 前必卖</b><br><span>无论涨停还是低开，不贪婪不恋战</span></div></div>
-    <div class="rule-item"><div class="rule-no" style="background:var(--buy)">✓</div><div class="rule-content"><b>目标每次 1%–3%</b><br><span>积小胜为大胜，复利长期致胜</span></div></div>
-    <div class="rule-item"><div class="rule-no" style="background:var(--sell)">!</div><div class="rule-content"><b>风险提示</b><br><span>熊市效果大打折扣；量化冲击难以应对；切勿追涨已封板个股</span></div></div>
+    <div class="rule-item"><div class="rule-no" style="background:var(--buy)">✓</div><div class="rule-content"><b>仅做沪市股票</b><br><span>30年回测：沪市胜率48%，深圳仅40%，差距稳定显著</span></div></div>
+    <div class="rule-item"><div class="rule-no" style="background:var(--buy)">✓</div><div class="rule-content"><b>每次最多买入 5 只</b><br><span>分散风险，同时保证每只仓位足够</span></div></div>
+    <div class="rule-item"><div class="rule-no" style="background:var(--sell)">!</div><div class="rule-content"><b>风险提示</b><br><span>年线下方自动暂停；2016-2018 式慢熊即便有信号也不操作</span></div></div>
   </div>
 </div>
 
