@@ -189,7 +189,25 @@ def _sim_run_settlement_and_record(scan_stocks: list) -> None:
 
     # 结算昨日持仓
     if pending and pending.get("date") and pending["date"] != today:
-        price_map = {s["code"]: s["price"] for s in scan_stocks}
+        # 专门查询持仓股票的当前价格（不能依赖扫描结果，持仓股今日不一定在3-5%区间）
+        pending_codes = [p["code"] for p in pending.get("positions", [])]
+        price_map = {}
+        if pending_codes:
+            try:
+                qtcodes = [f"{'sh' if c.startswith('6') else 'sz'}{c}" for c in pending_codes]
+                r = _req.get(f"http://qt.gtimg.cn/q={','.join(qtcodes)}", timeout=8)
+                for seg in r.text.strip().split(";"):
+                    m = re.search(r'v_(\w+)="([^"]+)"', seg)
+                    if not m:
+                        continue
+                    parts = m.group(2).split("~")
+                    if len(parts) >= 4:
+                        code = m.group(1)[2:]  # 去掉 sh/sz 前缀
+                        p = safe_float(parts[3])
+                        if p > 0:
+                            price_map[code] = p
+            except Exception as e:
+                print(f"sim price fetch error: {e}")
         settled = settle_trades(pending, price_map, sell_date=today)
         if settled:
             trades_data["trades"] = (trades_data.get("trades", []) + settled)[-90:]
