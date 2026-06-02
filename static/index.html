@@ -110,6 +110,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'PingFang 
     <div style="text-align:right"><div class="label">最佳入场时间</div><div style="font-size:13px;font-weight:600;color:var(--warn)">14:50 尾盘</div></div>
   </div>
 
+  <div id="marketBanner" style="display:none;border-radius:10px;padding:10px 14px;
+    margin-bottom:10px;font-size:12px;font-weight:600;text-align:center"></div>
   <button class="scan-btn" id="scanBtn" onclick="doScan(true)">重新扫描</button>
 
   <div class="result-meta" id="resultMeta" style="display:none"></div>
@@ -406,6 +408,19 @@ const CRITERIA_DEF = [
 const SCORE_LABEL = {7:'7/7 完美', 6:'6/7 极佳', 5:'5/7 关注', 4:'4/7 参考', 3:'3/7 参考'};
 
 function renderResults(data) {
+  // 市场条件横幅
+  const mb = document.getElementById('marketBanner');
+  if (mb && data.market_win_rate != null) {
+    const wr = data.market_win_rate;
+    const bg = wr >= 52 ? '#0d2a1e' : wr >= 45 ? '#2a1e0d' : '#2a0d0d';
+    const fg = wr >= 52 ? 'var(--buy)' : wr >= 45 ? 'var(--warn)' : 'var(--sell)';
+    mb.style.display = 'block';
+    mb.style.background = bg;
+    mb.style.color = fg;
+    mb.style.border = `1px solid ${fg}`;
+    mb.textContent = `📊 ${data.market_condition}  ·  历史胜率预估 ${wr}%`;
+  }
+
   const meta = document.getElementById('resultMeta');
   meta.style.display = 'flex';
   meta.innerHTML = `<span>找到 <b>${data.total_found}</b> 只候选 · 扫描 ${data.total_scanned} 只</span><span>耗时 ${data.elapsed}s · ${data.scan_time}</span>`;
