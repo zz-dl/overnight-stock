@@ -377,7 +377,21 @@ def _run_scan_internal() -> dict:
             )
 
     candidates.sort(key=lambda x: (-x["score"], -x["vol_ratio"]))
-    result_stocks = candidates[:30]
+    result_stocks = candidates[:5]  # 只取 Top5
+
+    # 批量查询行业板块（东方财富 API，只有5只，很快）
+    def _fetch_industry(code: str) -> str:
+        mkt = "1" if code.startswith("6") else "0"
+        try:
+            r = _req.get("http://push2.eastmoney.com/api/qt/stock/get",
+                params={"secid": f"{mkt}.{code}", "fields": "f127"},
+                timeout=5)
+            return (r.json().get("data") or {}).get("f127") or "—"
+        except Exception:
+            return "—"
+
+    for s in result_stocks:
+        s["industry"] = _fetch_industry(s["code"])
 
     # 为每只股票注入胜率和推荐理由
     for s in result_stocks:
