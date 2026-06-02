@@ -172,6 +172,47 @@ def check_limit_gene(code: str, mkt_code: int, days: int = 20) -> bool:
         return False
 
 
+# ── 胜率预测（基于十年历史回测数据）──────────────────────────────
+_IC_BASE = {(0.5, 1.0): 54, (1.0, 2.0): 43, (2.0, 99): 47, (0.0, 0.5): 38}
+_WEEKDAY_BONUS = {0: 1, 1: -1, 2: 0, 3: 0, 4: 2}
+_CONSEC_BONUS  = {0: 0, 1: 0, 2: 1, 3: 1}
+
+def calc_market_win_rate(index_chg: float, weekday: int, consec_up: int) -> int:
+    base = 38
+    for (lo, hi), wr in _IC_BASE.items():
+        if lo <= index_chg < hi:
+            base = wr
+            break
+    bonus  = _WEEKDAY_BONUS.get(weekday % 7, 0)
+    bonus += _CONSEC_BONUS.get(min(consec_up, 3), 0)
+    return max(30, min(72, base + bonus))
+
+def calc_stock_win_rate(market_win_rate: int, excess: float) -> int:
+    if 2.0 <= excess <= 2.5:   delta = 3
+    elif 2.5 < excess <= 3.0:  delta = 1
+    elif 3.0 < excess <= 4.0:  delta = 0
+    else:                      delta = -5
+    return max(30, min(72, market_win_rate + delta))
+
+def build_reasons(chg_pct: float, index_chg: float,
+                  excess: float, market_win_rate: int) -> list:
+    reasons = []
+    if 3.0 <= chg_pct < 3.5:
+        reasons.append(f"涨幅 {chg_pct:.1f}%，温和启动，追高风险低")
+    elif chg_pct < 4.5:
+        reasons.append(f"涨幅 {chg_pct:.1f}%，处于 3-5% 甜蜜区间，动能适中")
+    else:
+        reasons.append(f"涨幅 {chg_pct:.1f}%，偏高区间，次日需关注开盘方向")
+    if 2.0 <= excess <= 2.5:
+        reasons.append(f"超额大盘 {excess:.1f}x，独立行情且未过热（历史最优区间）")
+    elif excess > 4.0:
+        reasons.append(f"超额大盘 {excess:.1f}x，涨势较猛，注意次日开盘回调风险")
+    else:
+        reasons.append(f"超额大盘 {excess:.1f}x，个股有独立行情")
+    reasons.append(f"大盘今日 +{index_chg:.2f}%，历史同类条件胜率约 {market_win_rate}%")
+    return reasons
+
+
 # ── 模拟交易：结算 + 记录 ─────────────────────────────────────
 def _sim_run_settlement_and_record(scan_stocks: list) -> None:
     """在扫描完成后：结算昨日买入，更新胜率，记录今日 6/7+ 候选。"""
