@@ -253,7 +253,7 @@ function switchTab(name) {
 
 // ── 复盘 Tab ──────────────────────────────────────────────────
 const CRITERIA_LABELS = {
-  chg:'涨幅3-5%', turnover:'换手5-10%', vol_ratio:'量比>1',
+  chg:'涨幅3-5%', turnover:'换手5-10%',
   cap:'市值50-200亿', vwap:'均线上方', stronger:'强于大盘'
 };
 
@@ -409,7 +409,6 @@ async function autoLoad() {
 const CRITERIA_DEF = [
   { key: 'chg',        label: '涨幅3-5%' },
   { key: 'turnover',   label: '换手5-10%' },
-  { key: 'vol_ratio',  label: '量比>1' },
   { key: 'cap',        label: '市值50-200亿' },
   { key: 'vwap',       label: '均线上方' },
   { key: 'stronger',   label: '强于大盘' },
