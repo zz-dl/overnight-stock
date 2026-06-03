@@ -1,11 +1,25 @@
 {
   "date": "2026-06-03",
-  "scan_time": "02:00:54",
+  "scan_time": "02:20:27",
   "positions": [
+    {
+      "code": "600345",
+      "name": "长江通信",
+      "price": 53.65,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "score": 6
+    },
     {
       "code": "600152",
       "name": "维科技术",
-      "price": 12.78,
+      "price": 12.65,
       "criteria": {
         "chg": true,
         "turnover": true,
@@ -19,7 +33,7 @@
     {
       "code": "300319",
       "name": "麦捷科技",
-      "price": 16.9,
+      "price": 17.03,
       "criteria": {
         "chg": true,
         "turnover": true,
@@ -31,46 +45,32 @@
       "score": 6
     },
     {
-      "code": "000062",
-      "name": "深圳华强",
-      "price": 34.6,
+      "code": "300221",
+      "name": "银禧科技",
+      "price": 14.77,
       "criteria": {
         "chg": true,
         "turnover": true,
         "vol_ratio": true,
-        "cap": false,
+        "cap": true,
         "vwap": true,
         "stronger": true
       },
-      "score": 5
+      "score": 6
     },
     {
-      "code": "002191",
-      "name": "劲嘉股份",
-      "price": 3.86,
+      "code": "603267",
+      "name": "鸿远电子",
+      "price": 82.68,
       "criteria": {
         "chg": true,
-        "turnover": false,
+        "turnover": true,
         "vol_ratio": true,
         "cap": true,
         "vwap": true,
         "stronger": true
       },
-      "score": 5
-    },
-    {
-      "code": "600459",
-      "name": "贵研铂业",
-      "price": 24.39,
-      "criteria": {
-        "chg": true,
-        "turnover": false,
-        "vol_ratio": true,
-        "cap": true,
-        "vwap": true,
-        "stronger": true
-      },
-      "score": 5
+      "score": 6
     }
   ]
 }
