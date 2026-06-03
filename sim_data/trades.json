@@ -1,0 +1,94 @@
+{
+  "trades": [
+    {
+      "code": "603039",
+      "name": "泛微网络",
+      "buy_price": 42.08,
+      "sell_price": 41.61,
+      "buy_date": "2026-06-02",
+      "sell_date": "2026-06-03",
+      "return_pct": -1.12,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "score": 6
+    },
+    {
+      "code": "600063",
+      "name": "皖维高新",
+      "buy_price": 7.37,
+      "sell_price": 7.44,
+      "buy_date": "2026-06-02",
+      "sell_date": "2026-06-03",
+      "return_pct": 0.95,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "score": 6
+    },
+    {
+      "code": "300461",
+      "name": "田中精机",
+      "buy_price": 49.76,
+      "sell_price": 50.45,
+      "buy_date": "2026-06-02",
+      "sell_date": "2026-06-03",
+      "return_pct": 1.39,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "score": 6
+    },
+    {
+      "code": "002213",
+      "name": "大为股份",
+      "buy_price": 34.38,
+      "sell_price": 35.57,
+      "buy_date": "2026-06-02",
+      "sell_date": "2026-06-03",
+      "return_pct": 3.46,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "score": 6
+    },
+    {
+      "code": "600184",
+      "name": "光电股份",
+      "buy_price": 26.67,
+      "sell_price": 27.37,
+      "buy_date": "2026-06-02",
+      "sell_date": "2026-06-03",
+      "return_pct": 2.62,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "score": 6
+    }
+  ]
+}
