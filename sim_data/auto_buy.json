@@ -1,0 +1,82 @@
+{
+  "date": "2026-06-03",
+  "buy_time": "07:46:46",
+  "market_win_rate": 38,
+  "positions": [
+    {
+      "code": "002326",
+      "name": "永太科技",
+      "buy_price": 21.95,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "est_win_rate": 33,
+      "industry": "—"
+    },
+    {
+      "code": "601133",
+      "name": "柏诚股份",
+      "buy_price": 27.46,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "est_win_rate": 33,
+      "industry": "—"
+    },
+    {
+      "code": "300497",
+      "name": "富祥股份",
+      "buy_price": 16.05,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "est_win_rate": 33,
+      "industry": "—"
+    },
+    {
+      "code": "603052",
+      "name": "可川科技",
+      "buy_price": 94.96,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "est_win_rate": 33,
+      "industry": "—"
+    },
+    {
+      "code": "603124",
+      "name": "XD江南新",
+      "buy_price": 148.32,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "est_win_rate": 33,
+      "industry": "—"
+    }
+  ]
+}
