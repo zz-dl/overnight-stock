@@ -683,6 +683,142 @@ def api_actions_sell():
                     "avg_return": avg, "trades": settled})
 
 
+@app.route("/api/actions/collect-trade-data", methods=["POST"])
+def api_actions_collect_trade_data():
+    """15:30 GitHub Actions 调用：收集今日交易的全量数据，存入 GitHub。"""
+    today = date.today().isoformat()
+
+    # 读取今日自动交易记录
+    auto_trades, _ = gh_read("sim_data/auto_trades.json")
+    if not auto_trades:
+        return jsonify({"ok": False, "msg": "无交易记录"})
+
+    # 只处理今日成交
+    today_trades = [t for t in auto_trades.get("trades", []) if t.get("sell_date") == today]
+    if not today_trades:
+        return jsonify({"ok": False, "msg": f"今日({today})无成交记录"})
+
+    # 读取盘中价格
+    intraday, _ = gh_read(f"sim_data/intraday/{today}.json")
+    intraday = intraday or {}
+
+    # 读取 auto_buy（含胜率/标准信息）
+    auto_buy, _ = gh_read("sim_data/auto_buy.json")
+    buy_map = {}
+    if auto_buy and auto_buy.get("date") == today:
+        for p in auto_buy.get("positions", []):
+            buy_map[p["code"]] = p
+
+    # 从腾讯API批量获取当前行情（含量比、换手率等）
+    codes = [t["code"] for t in today_trades]
+    qtcodes = [f"{'sh' if c.startswith('6') else 'sz'}{c}" for c in codes]
+    tencent_data = {}
+    try:
+        r = _req.get(f"http://qt.gtimg.cn/q={','.join(qtcodes)}", timeout=8)
+        for seg in r.text.strip().split(";"):
+            m = re.search(r'v_(\w+)="([^"]+)"', seg)
+            if not m: continue
+            parts = m.group(2).split("~")
+            if len(parts) < 50: continue
+            code = m.group(1)[2:]
+            tencent_data[code] = {
+                "name":         parts[1],
+                "close":        safe_float(parts[3]),
+                "prev_close":   safe_float(parts[4]),
+                "open":         safe_float(parts[5]),
+                "high":         safe_float(parts[33]),
+                "low":          safe_float(parts[34]),
+                "chg_pct":      safe_float(parts[32]),
+                "volume":       safe_float(parts[36]),
+                "amount":       safe_float(parts[37]),
+                "turnover_rate":safe_float(parts[38]),
+                "pe":           safe_float(parts[39]),
+                "amplitude":    safe_float(parts[43]),
+                "float_cap":    safe_float(parts[44]),
+                "total_cap":    safe_float(parts[45]),
+                "pb":           safe_float(parts[46]),
+                "vol_ratio":    safe_float(parts[49]) if len(parts) > 49 else 0.0,
+            }
+    except Exception as e:
+        print(f"Tencent fetch error: {e}")
+
+    # 从东方财富获取资金流向
+    def _get_flow(code):
+        mkt = "1" if code.startswith("6") else "0"
+        try:
+            r2 = _req.get("http://push2.eastmoney.com/api/qt/stock/fflow/kline/get",
+                params={"lmt":"1","klt":"1","fields1":"f1,f2,f3,f7","fields2":"f51,f52,f53,f54,f55,f56,f57,f58",
+                        "secid":f"{mkt}.{code}"},
+                headers={"Referer":"http://quote.eastmoney.com/"}, timeout=6)
+            rows = (r2.json().get("data") or {}).get("klines") or []
+            if rows:
+                p = rows[-1].split(",")
+                return {"main_net":safe_float(p[1]),"huge_net":safe_float(p[2]),
+                        "large_net":safe_float(p[3]),"small_net":safe_float(p[5])}
+        except Exception:
+            pass
+        return {}
+
+    # 组装完整记录
+    detail_records = []
+    for t in today_trades:
+        code = t["code"]
+        td = tencent_data.get(code, {})
+        flow = _get_flow(code)
+        bp = buy_map.get(code, {})
+        iday = intraday.get(code, {})
+
+        rec = {
+            "trade_date":    today,
+            "code":          code,
+            "name":          td.get("name") or t.get("name", ""),
+            "industry":      bp.get("industry", ""),
+            "buy_price":     t.get("buy_price"),
+            "buy_time":      t.get("buy_time", ""),
+            "sell_price":    t.get("sell_price"),
+            "sell_time":     "10:01:00",
+            "return_pct":    t.get("return_pct"),
+            "open":          td.get("open"),
+            "high":          td.get("high"),
+            "low":           td.get("low"),
+            "close":         td.get("close"),
+            "prev_close":    td.get("prev_close"),
+            "volume":        td.get("volume"),
+            "amount":        td.get("amount"),
+            "amplitude":     td.get("amplitude"),
+            "chg_pct":       td.get("chg_pct"),
+            "turnover_rate": td.get("turnover_rate"),
+            "vol_ratio":     td.get("vol_ratio"),
+            "float_cap":     td.get("float_cap"),
+            "total_cap":     td.get("total_cap"),
+            "pe":            td.get("pe"),
+            "pb":            td.get("pb"),
+            "main_net":      flow.get("main_net"),
+            "huge_net":      flow.get("huge_net"),
+            "large_net":     flow.get("large_net"),
+            "small_net":     flow.get("small_net"),
+            "price_next_open": iday.get("price_next_open") or t.get("sell_price"),
+            "price_0930":    iday.get("09:30"),
+            "price_0935":    iday.get("09:35"),
+            "price_0940":    iday.get("09:40"),
+            "price_0945":    iday.get("09:45"),
+            "price_0950":    iday.get("09:50"),
+            "price_0955":    iday.get("09:55"),
+            "price_1000":    iday.get("10:00"),
+            "est_win_rate":  bp.get("est_win_rate"),
+            "criteria":      str(bp.get("criteria", {})),
+        }
+        detail_records.append(rec)
+
+    # 存入 GitHub
+    path = f"sim_data/trade_details/{today}.json"
+    existing, sha = gh_read(path)
+    gh_write(path, {"date": today, "records": detail_records}, sha, f"trade_data: {today}")
+
+    return jsonify({"ok": True, "date": today, "count": len(detail_records),
+                    "stocks": [r["name"] for r in detail_records]})
+
+
 APP_VERSION = "v5-sync-scan"
 
 

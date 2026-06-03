@@ -1,0 +1,17 @@
+name: 15:30 Collect Trade Data
+on:
+  schedule:
+    - cron: '30 7 * * 1-5'   # 周一至周五 07:30 UTC = 15:30 CST
+  workflow_dispatch:
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Collect and save trade data
+        run: |
+          curl -s -X POST \
+            "https://overnight-stock.onrender.com/api/actions/collect-trade-data" \
+            -H "Content-Type: application/json" \
+            --max-time 120 \
+            | cat
