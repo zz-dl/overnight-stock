@@ -1,0 +1,17 @@
+name: 10:01 Sell
+on:
+  schedule:
+    - cron: '1 2 * * 1-5'    # 周一至周五 02:01 UTC = 10:01 CST
+  workflow_dispatch:
+
+jobs:
+  sell:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Settle and sell
+        run: |
+          curl -s -X POST \
+            "https://overnight-stock.onrender.com/api/actions/sell" \
+            -H "Content-Type: application/json" \
+            --max-time 60 \
+            | cat

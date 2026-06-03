@@ -1,0 +1,23 @@
+name: 9:30-10:00 Track Prices
+on:
+  schedule:
+    - cron: '30 1 * * 1-5'   # 09:30 CST
+    - cron: '35 1 * * 1-5'   # 09:35 CST
+    - cron: '40 1 * * 1-5'   # 09:40 CST
+    - cron: '45 1 * * 1-5'   # 09:45 CST
+    - cron: '50 1 * * 1-5'   # 09:50 CST
+    - cron: '55 1 * * 1-5'   # 09:55 CST
+    - cron: '0 2 * * 1-5'    # 10:00 CST
+  workflow_dispatch:
+
+jobs:
+  track:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Record current prices
+        run: |
+          curl -s -X POST \
+            "https://overnight-stock.onrender.com/api/actions/track-prices" \
+            -H "Content-Type: application/json" \
+            --max-time 30 \
+            | cat

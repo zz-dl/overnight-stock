@@ -1,0 +1,19 @@
+name: 14:50 Scan and Buy
+on:
+  schedule:
+    - cron: '50 6 * * 1-5'   # 周一至周五 06:50 UTC = 14:50 CST
+  workflow_dispatch:           # 支持手动触发
+
+jobs:
+  scan-and-buy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger scan and buy
+        run: |
+          curl -s -X POST \
+            "https://overnight-stock.onrender.com/api/actions/scan-and-buy" \
+            -H "Content-Type: application/json" \
+            --max-time 120 \
+            | tee result.json
+          cat result.json
+          # 如果返回 ok:false 视为警告但不报错

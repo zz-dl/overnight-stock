@@ -526,10 +526,158 @@ def api_sim():
     })
 
 
+@app.route("/api/auto-trades")
+def api_auto_trades():
+    """返回自动交易历史 + 当前持仓（供复盘页显示）"""
+    auto_buy, _   = gh_read("sim_data/auto_buy.json")
+    auto_trades, _ = gh_read("sim_data/auto_trades.json")
+    trades = (auto_trades or {}).get("trades", [])
+    return jsonify({
+        "pending": auto_buy or {},
+        "trades":  trades[-20:],
+    })
+
+
 @app.route("/api/index")
 def api_index():
     chg = get_index_chg()
     return jsonify({"chg": round(chg, 2), "time": datetime.now().strftime("%H:%M:%S")})
+
+
+# ── GitHub Actions 定时任务端点 ──────────────────────────────────────────────
+
+@app.route("/api/actions/scan-and-buy", methods=["POST"])
+def api_actions_scan_and_buy():
+    """14:50 GitHub Actions 调用：扫描→取Top5→存 auto_buy.json"""
+    today = date.today().isoformat()
+    # 先清缓存，强制重新扫描
+    global _cache, _cache_ts
+    with _cache_lock:
+        _cache = {}
+        _cache_ts = 0.0
+    result = _run_scan_internal()
+    stocks = result.get("stocks", [])[:5]
+    if not stocks:
+        return jsonify({"ok": False, "msg": "无候选股（年线下方或无满足条件股票）", "date": today})
+
+    auto_buy = {
+        "date": today,
+        "buy_time": datetime.now().strftime("%H:%M:%S"),
+        "market_win_rate": result.get("market_win_rate"),
+        "positions": [
+            {"code": s["code"], "name": s["name"], "buy_price": s["price"],
+             "criteria": s["criteria"], "est_win_rate": s.get("est_win_rate"),
+             "industry": s.get("industry", "—")}
+            for s in stocks
+        ],
+    }
+    _, sha = gh_read("sim_data/auto_buy.json")
+    gh_write("sim_data/auto_buy.json", auto_buy, sha, f"auto: buy {today}")
+    return jsonify({"ok": True, "date": today, "count": len(stocks),
+                    "stocks": [s["name"] for s in stocks]})
+
+
+@app.route("/api/actions/track-prices", methods=["POST"])
+def api_actions_track_prices():
+    """9:30-10:00 每5分钟 GitHub Actions 调用：记录持仓股票当前价格"""
+    auto_buy, _ = gh_read("sim_data/auto_buy.json")
+    if not auto_buy or not auto_buy.get("positions"):
+        return jsonify({"ok": False, "msg": "无持仓"})
+
+    codes = [p["code"] for p in auto_buy["positions"]]
+    qtcodes = [f"{'sh' if c.startswith('6') else 'sz'}{c}" for c in codes]
+    price_map = {}
+    try:
+        r = _req.get(f"http://qt.gtimg.cn/q={','.join(qtcodes)}", timeout=8)
+        for seg in r.text.strip().split(";"):
+            m = re.search(r'v_(\w+)="([^"]+)"', seg)
+            if not m: continue
+            parts = m.group(2).split("~")
+            if len(parts) >= 4:
+                code = m.group(1)[2:]
+                p = safe_float(parts[3])
+                if p > 0:
+                    price_map[code] = p
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)})
+
+    today = auto_buy.get("date", date.today().isoformat())
+    now_time = datetime.now().strftime("%H:%M")
+    path = f"sim_data/intraday/{today}.json"
+    intraday, sha = gh_read(path)
+    if not intraday:
+        intraday = {}
+    intraday[now_time] = price_map
+    gh_write(path, intraday, sha, f"auto: prices {today} {now_time}")
+    return jsonify({"ok": True, "time": now_time, "prices": price_map})
+
+
+@app.route("/api/actions/sell", methods=["POST"])
+def api_actions_sell():
+    """10:01 GitHub Actions 调用：用10:00价格结算，写入 auto_trades.json"""
+    auto_buy, buy_sha = gh_read("sim_data/auto_buy.json")
+    if not auto_buy or not auto_buy.get("positions"):
+        return jsonify({"ok": False, "msg": "无持仓"})
+
+    today = date.today().isoformat()
+    buy_date = auto_buy.get("date", today)
+
+    # 取10:00价格（先找 intraday，找不到就实时查）
+    intraday, _ = gh_read(f"sim_data/intraday/{buy_date}.json")
+    sell_prices = (intraday or {}).get("10:00", {})
+
+    if not sell_prices:
+        # 实时查当前价格作为卖出价
+        codes = [p["code"] for p in auto_buy["positions"]]
+        qtcodes = [f"{'sh' if c.startswith('6') else 'sz'}{c}" for c in codes]
+        try:
+            r = _req.get(f"http://qt.gtimg.cn/q={','.join(qtcodes)}", timeout=8)
+            for seg in r.text.strip().split(";"):
+                m = re.search(r'v_(\w+)="([^"]+)"', seg)
+                if not m: continue
+                parts = m.group(2).split("~")
+                if len(parts) >= 4:
+                    code = m.group(1)[2:]
+                    p = safe_float(parts[3])
+                    if p > 0:
+                        sell_prices[code] = p
+        except Exception:
+            pass
+
+    COST_PCT = 0.10
+    settled = []
+    for pos in auto_buy["positions"]:
+        code = pos["code"]
+        sell_px = sell_prices.get(code)
+        if not sell_px:
+            continue
+        buy_px = float(pos["buy_price"])
+        ret = round((sell_px / buy_px - 1) * 100 - COST_PCT, 2)
+        settled.append({
+            "code": code, "name": pos["name"],
+            "buy_date": buy_date, "sell_date": today,
+            "buy_price": round(buy_px, 3), "sell_price": round(sell_px, 3),
+            "return_pct": ret, "industry": pos.get("industry", "—"),
+            "est_win_rate": pos.get("est_win_rate"),
+        })
+
+    if not settled:
+        return jsonify({"ok": False, "msg": "无法获取卖出价格"})
+
+    # 追加到 auto_trades.json
+    auto_trades, at_sha = gh_read("sim_data/auto_trades.json")
+    if not auto_trades:
+        auto_trades = {"trades": []}
+    auto_trades["trades"] = (auto_trades["trades"] + settled)[-90:]
+    gh_write("sim_data/auto_trades.json", auto_trades, at_sha, f"auto: sell {today}")
+
+    # 清空 auto_buy
+    gh_write("sim_data/auto_buy.json", {}, buy_sha, f"auto: clear {today}")
+
+    wins = sum(1 for t in settled if t["return_pct"] > 0)
+    avg = round(sum(t["return_pct"] for t in settled) / len(settled), 2)
+    return jsonify({"ok": True, "settled": len(settled), "wins": wins,
+                    "avg_return": avg, "trades": settled})
 
 
 APP_VERSION = "v5-sync-scan"

@@ -260,14 +260,17 @@ const CRITERIA_LABELS = {
 async function loadReplay() {
   const el = document.getElementById('replayContent');
   try {
-    const d = await fetch('/api/sim').then(r => r.json());
-    renderReplay(d, el);
+    const [sim, auto] = await Promise.all([
+      fetch('/api/sim').then(r => r.json()),
+      fetch('/api/auto-trades').then(r => r.json()).catch(() => ({})),
+    ]);
+    renderReplay(sim, auto, el);
   } catch(e) {
     el.innerHTML = `<div class="empty">❌ 加载失败: ${e.message}</div>`;
   }
 }
 
-function renderReplay(d, el) {
+function renderReplay(d, auto, el) {
   const stats  = d.stats  || {};
   const trades = d.trades || [];
   const pending = d.pending || {};
@@ -275,7 +278,42 @@ function renderReplay(d, el) {
   const active = new Set(stats.active_criteria || Object.keys(CRITERIA_LABELS));
   let html = '';
 
-  // ① 当前模拟仓
+  // ① 自动交易记录（GitHub Actions 14:50买入 / 次日10:01卖出）
+  const autoTrades = (auto.trades || []).slice().reverse().slice(0, 20);
+  const autoBuy = auto.pending || {};
+  html += `<div class="rule-card"><div class="rule-title">🤖 自动定时交易记录（14:50买入·次日10:01卖出）</div>`;
+  if (autoBuy.positions && autoBuy.positions.length) {
+    html += `<div style="font-size:11px;color:var(--accent);padding:6px 0;border-bottom:1px solid var(--border)">
+      📌 当前持仓（${autoBuy.date}·${autoBuy.buy_time||''}）：
+      ${autoBuy.positions.map(p=>`<b>${p.name}</b> @${p.buy_price}`).join('  /  ')}
+    </div>`;
+  }
+  if (!autoTrades.length) {
+    html += `<div class="empty" style="padding:12px">暂无记录，GitHub Actions 每天 14:50 自动买入</div>`;
+  } else {
+    const wins = autoTrades.filter(t=>t.return_pct>0).length;
+    const avg = autoTrades.reduce((s,t)=>s+t.return_pct,0)/autoTrades.length;
+    html += `<div style="font-size:11px;color:var(--dim);padding:4px 0">
+      共 ${autoTrades.length} 笔 · 胜率 ${(wins/autoTrades.length*100).toFixed(0)}% · 均收益 ${avg>=0?'+':''}${avg.toFixed(3)}%
+    </div>`;
+    autoTrades.forEach(t => {
+      const c = t.return_pct > 0 ? 'var(--buy)' : 'var(--sell)';
+      const s = t.return_pct > 0 ? '+' : '';
+      html += `<div class="row" style="padding:6px 0">
+        <div>
+          <div style="font-size:13px;font-weight:700">${t.name}<span style="font-size:10px;color:var(--accent);margin-left:4px">${t.industry||''}</span></div>
+          <div style="font-size:10px;color:var(--dim)">${t.buy_date}→${t.sell_date}  ${t.buy_price}→${t.sell_price}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:14px;font-weight:800;color:${c}">${s}${t.return_pct}%</div>
+          <div style="font-size:10px;color:var(--dim)">预估胜率 ${t.est_win_rate||'—'}%</div>
+        </div>
+      </div>`;
+    });
+  }
+  html += `</div>`;
+
+  // ② 当前模拟仓
   const positions = (pending.positions || []);
   html += `<div class="rule-card"><div class="rule-title">📋 当前模拟仓（${pending.date || '暂无'}）</div>`;
   if (!positions.length) {
