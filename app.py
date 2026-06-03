@@ -301,7 +301,10 @@ def _sim_run_settlement_and_record(scan_stocks: list) -> None:
         if s.get("score", 0) >= min_score
     ]
 
-    if sim_candidates:
+    # 只在 14:30-15:00 之间记录模拟买入（非尾盘时段扫描不算买入）
+    now_h, now_m = datetime.now().hour, datetime.now().minute
+    in_buy_window = (14, 30) <= (now_h, now_m) <= (15, 0)
+    if sim_candidates and in_buy_window:
         new_pending = {"date": today, "scan_time": datetime.now().strftime("%H:%M:%S"),
                        "positions": sim_candidates}
         _, p_sha = gh_read("sim_data/pending.json")
