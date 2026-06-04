@@ -1,1 +1,82 @@
-{}
+{
+  "date": "2026-06-04",
+  "buy_time": "10:31:04",
+  "market_win_rate": 38,
+  "positions": [
+    {
+      "code": "600198",
+      "name": "大唐电信",
+      "buy_price": 9.25,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": false
+      },
+      "est_win_rate": 33,
+      "industry": "—"
+    },
+    {
+      "code": "601011",
+      "name": "宝泰隆",
+      "buy_price": 3.19,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": false
+      },
+      "est_win_rate": 33,
+      "industry": "—"
+    },
+    {
+      "code": "002254",
+      "name": "泰和新材",
+      "buy_price": 14.12,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": false
+      },
+      "est_win_rate": 33,
+      "industry": "—"
+    },
+    {
+      "code": "000620",
+      "name": "盈新发展",
+      "buy_price": 2.98,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": false
+      },
+      "est_win_rate": 33,
+      "industry": "—"
+    },
+    {
+      "code": "603158",
+      "name": "腾龙股份",
+      "buy_price": 15.74,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": false
+      },
+      "est_win_rate": 33,
+      "industry": "—"
+    }
+  ]
+}
