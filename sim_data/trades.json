@@ -89,6 +89,96 @@
         "stronger": true
       },
       "score": 6
+    },
+    {
+      "code": "600345",
+      "name": "长江通信",
+      "buy_price": 53.65,
+      "sell_price": 54.5,
+      "buy_date": "2026-06-03",
+      "sell_date": "2026-06-04",
+      "return_pct": 1.58,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "score": 6
+    },
+    {
+      "code": "600152",
+      "name": "维科技术",
+      "buy_price": 12.65,
+      "sell_price": 12.02,
+      "buy_date": "2026-06-03",
+      "sell_date": "2026-06-04",
+      "return_pct": -4.98,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "score": 6
+    },
+    {
+      "code": "300319",
+      "name": "麦捷科技",
+      "buy_price": 17.03,
+      "sell_price": 18.45,
+      "buy_date": "2026-06-03",
+      "sell_date": "2026-06-04",
+      "return_pct": 8.34,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "score": 6
+    },
+    {
+      "code": "300221",
+      "name": "银禧科技",
+      "buy_price": 14.77,
+      "sell_price": 14.29,
+      "buy_date": "2026-06-03",
+      "sell_date": "2026-06-04",
+      "return_pct": -3.25,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "score": 6
+    },
+    {
+      "code": "603267",
+      "name": "鸿远电子",
+      "buy_price": 82.68,
+      "sell_price": 78.22,
+      "buy_date": "2026-06-03",
+      "sell_date": "2026-06-04",
+      "return_pct": -5.39,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "score": 6
     }
   ]
 }
