@@ -1,0 +1,59 @@
+{
+  "trades": [
+    {
+      "code": "002326",
+      "name": "永太科技",
+      "buy_date": "2026-06-03",
+      "sell_date": "2026-06-04",
+      "buy_price": 21.95,
+      "sell_price": 21.85,
+      "return_pct": -0.56,
+      "industry": "—",
+      "est_win_rate": 33
+    },
+    {
+      "code": "601133",
+      "name": "柏诚股份",
+      "buy_date": "2026-06-03",
+      "sell_date": "2026-06-04",
+      "buy_price": 27.46,
+      "sell_price": 28.26,
+      "return_pct": 2.81,
+      "industry": "—",
+      "est_win_rate": 33
+    },
+    {
+      "code": "300497",
+      "name": "富祥股份",
+      "buy_date": "2026-06-03",
+      "sell_date": "2026-06-04",
+      "buy_price": 16.05,
+      "sell_price": 15.79,
+      "return_pct": -1.72,
+      "industry": "—",
+      "est_win_rate": 33
+    },
+    {
+      "code": "603052",
+      "name": "可川科技",
+      "buy_date": "2026-06-03",
+      "sell_date": "2026-06-04",
+      "buy_price": 94.96,
+      "sell_price": 93.94,
+      "return_pct": -1.17,
+      "industry": "—",
+      "est_win_rate": 33
+    },
+    {
+      "code": "603124",
+      "name": "XD江南新",
+      "buy_date": "2026-06-03",
+      "sell_date": "2026-06-04",
+      "buy_price": 148.32,
+      "sell_price": 152.46,
+      "return_pct": 2.69,
+      "industry": "—",
+      "est_win_rate": 33
+    }
+  ]
+}
