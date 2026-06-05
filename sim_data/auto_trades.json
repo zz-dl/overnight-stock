@@ -54,6 +54,61 @@
       "return_pct": 2.69,
       "industry": "—",
       "est_win_rate": 33
+    },
+    {
+      "code": "600198",
+      "name": "大唐电信",
+      "buy_date": "2026-06-04",
+      "sell_date": "2026-06-05",
+      "buy_price": 9.25,
+      "sell_price": 8.97,
+      "return_pct": -3.13,
+      "industry": "—",
+      "est_win_rate": 33
+    },
+    {
+      "code": "601011",
+      "name": "宝泰隆",
+      "buy_date": "2026-06-04",
+      "sell_date": "2026-06-05",
+      "buy_price": 3.19,
+      "sell_price": 3.3,
+      "return_pct": 3.35,
+      "industry": "—",
+      "est_win_rate": 33
+    },
+    {
+      "code": "002254",
+      "name": "泰和新材",
+      "buy_date": "2026-06-04",
+      "sell_date": "2026-06-05",
+      "buy_price": 14.12,
+      "sell_price": 15.53,
+      "return_pct": 9.89,
+      "industry": "—",
+      "est_win_rate": 33
+    },
+    {
+      "code": "000620",
+      "name": "盈新发展",
+      "buy_date": "2026-06-04",
+      "sell_date": "2026-06-05",
+      "buy_price": 2.98,
+      "sell_price": 2.88,
+      "return_pct": -3.46,
+      "industry": "—",
+      "est_win_rate": 33
+    },
+    {
+      "code": "603158",
+      "name": "腾龙股份",
+      "buy_date": "2026-06-04",
+      "sell_date": "2026-06-05",
+      "buy_price": 15.74,
+      "sell_price": 16.53,
+      "return_pct": 4.92,
+      "industry": "—",
+      "est_win_rate": 33
     }
   ]
 }
