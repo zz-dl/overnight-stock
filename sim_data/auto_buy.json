@@ -1,1 +1,82 @@
-{}
+{
+  "date": "2026-06-05",
+  "buy_time": "10:38:28",
+  "market_win_rate": 40,
+  "positions": [
+    {
+      "code": "000012",
+      "name": "南  玻Ａ",
+      "buy_price": 4.38,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": false
+      },
+      "est_win_rate": 35,
+      "industry": "—"
+    },
+    {
+      "code": "300296",
+      "name": "利亚德",
+      "buy_price": 6.88,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": false
+      },
+      "est_win_rate": 35,
+      "industry": "—"
+    },
+    {
+      "code": "601011",
+      "name": "宝泰隆",
+      "buy_price": 3.29,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": false
+      },
+      "est_win_rate": 35,
+      "industry": "—"
+    },
+    {
+      "code": "300007",
+      "name": "汉威科技",
+      "buy_price": 42.82,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": false
+      },
+      "est_win_rate": 35,
+      "industry": "—"
+    },
+    {
+      "code": "002023",
+      "name": "海特高新",
+      "buy_price": 11.86,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": false
+      },
+      "est_win_rate": 35,
+      "industry": "—"
+    }
+  ]
+}
