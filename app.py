@@ -719,7 +719,7 @@ def api_actions_scan_and_buy():
 
     auto_buy = {
         "date": today,
-        "buy_time": datetime.now().strftime("%H:%M:%S"),
+        "buy_time": "14:50:00",
         "market_win_rate": result.get("market_win_rate"),
         "index_chg": result.get("index_chg"),
         "positions": [
@@ -970,7 +970,7 @@ def api_actions_collect_trade_data():
                     "stocks": [r["name"] for r in detail_records]})
 
 
-APP_VERSION = "v9-industry-buy-time-fill"
+APP_VERSION = "v10-strategy-buy-time-1450"
 
 
 @app.route("/api/version")
