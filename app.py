@@ -706,6 +706,7 @@ def api_actions_scan_and_buy():
         "date": today,
         "buy_time": datetime.now().strftime("%H:%M:%S"),
         "market_win_rate": result.get("market_win_rate"),
+        "index_chg": result.get("index_chg"),
         "positions": [
             {"code": s["code"], "name": s["name"], "buy_price": s["price"],
              "criteria": s["criteria"], "est_win_rate": s.get("est_win_rate"),
@@ -728,6 +729,8 @@ def api_actions_scan_and_buy():
             qs.update(_get_fund_flow(c))
             qs["buy_price"]    = s["price"]
             qs["est_win_rate"] = s.get("est_win_rate")
+            qs["market_win_rate"] = result.get("market_win_rate")
+            qs["index_chg"] = result.get("index_chg")
             qs["industry"]     = s.get("industry", "—")
             qs["criteria"]     = s.get("criteria", {})
             buy_snapshots[c] = qs
@@ -736,6 +739,8 @@ def api_actions_scan_and_buy():
         gh_write(snap_path, {
             "date": today,
             "snapshot_time": datetime.now().strftime("%H:%M:%S"),
+            "market_win_rate": result.get("market_win_rate"),
+            "index_chg": result.get("index_chg"),
             "snapshots": buy_snapshots,
         }, snap_sha, f"buy snapshot {today}")
     except Exception as e:
@@ -949,7 +954,7 @@ def api_actions_collect_trade_data():
                     "stocks": [r["name"] for r in detail_records]})
 
 
-APP_VERSION = "v7-intraday-sample-fallback"
+APP_VERSION = "v8-trade-history-field-fill"
 
 
 @app.route("/api/version")
