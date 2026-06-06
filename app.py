@@ -82,8 +82,9 @@ def get_index_above_ma250() -> bool:
 # ── A 股代码段 ────────────────────────────────────────────────
 def _gen_astock_qtcodes() -> list[str]:
     """
-    只扫活跃代码段，避免触发腾讯反爬。
-    ~1800 只：沪主板核心段 + 深主板核心段 + 创业板核心 + 科创板核心。
+    回测结论①：只做沪市 → 只生成 sh 代码段（不再扫描深市/创业板）。
+    ~1600 只：沪主板核心 + 沪主板扩展 + 科创板核心。
+    （只扫活跃代码段，避免触发腾讯反爬。）
     """
     pairs: list[str] = []
     for n in range(600000, 600600):   # 沪主板核心（600000-600599）
@@ -94,12 +95,6 @@ def _gen_astock_qtcodes() -> list[str]:
         pairs.append(f"sh{n}")
     for n in range(688000, 688300):   # 科创板核心（688000-688299）
         pairs.append(f"sh{n}")
-    for n in range(1, 700):           # 深主板核心（000001-000699）
-        pairs.append(f"sz{str(n).zfill(6)}")
-    for n in range(2001, 2400):       # 深中小板（002001-002399）
-        pairs.append(f"sz{str(n).zfill(6)}")
-    for n in range(300000, 300600):   # 创业板核心（300000-300599）
-        pairs.append(f"sz{n}")
     return pairs
 
 
@@ -201,6 +196,97 @@ def check_limit_gene(code: str, mkt_code: int, days: int = 20) -> bool:
         return False
     except Exception:
         return False
+
+
+# ── 5日均线：当前价是否站上 MA5 ───────────────────────────────
+def check_above_ma5(code: str, mkt_code: int) -> bool:
+    """
+    回测结论④：判断个股当前价是否站上 5 日均线（含当日）。
+    5MA 下方的个股次日胜率显著偏低，过滤掉。
+    获取失败时默认返回 True（不误拦截）。
+    """
+    try:
+        r = _req.get(
+            "https://push2his.eastmoney.com/api/qt/stock/kline/get",
+            params={
+                "secid": f"{mkt_code}.{code}",
+                "fields1": "f1,f2,f3,f4,f5",
+                "fields2": "f51,f52,f53,f54,f55",
+                "klt": 101, "fqt": 0, "end": "20500101", "lmt": 6,
+            },
+            timeout=6,
+        )
+        klines = (r.json().get("data") or {}).get("klines") or []
+        closes = [safe_float(k.split(",")[2]) for k in klines[-5:]]  # parts[2]=收盘
+        closes = [c for c in closes if c > 0]
+        if len(closes) < 5:
+            return True  # 数据不足，不拦截
+        ma5 = sum(closes) / len(closes)
+        return closes[-1] >= ma5
+    except Exception:
+        return True
+
+
+# ── 完整行情快照 + 资金流（供"买入当日14:50"采集）────────────────
+def _fetch_quote_snapshot(codes: list[str]) -> dict:
+    """从腾讯API批量获取完整行情快照（含量比/换手率/振幅/市值等）。
+    返回 {code: {features...}}。在买入时点调用即得到该时点的快照。"""
+    snap: dict = {}
+    qtcodes = [f"{'sh' if c.startswith('6') else 'sz'}{c}" for c in codes]
+    if not qtcodes:
+        return snap
+    try:
+        r = _req.get(f"http://qt.gtimg.cn/q={','.join(qtcodes)}", timeout=8)
+        for seg in r.text.strip().split(";"):
+            m = re.search(r'v_(\w+)="([^"]+)"', seg)
+            if not m:
+                continue
+            parts = m.group(2).split("~")
+            if len(parts) < 50:
+                continue
+            code = m.group(1)[2:]
+            snap[code] = {
+                "name":          parts[1],
+                "close":         safe_float(parts[3]),
+                "prev_close":    safe_float(parts[4]),
+                "open":          safe_float(parts[5]),
+                "high":          safe_float(parts[33]),
+                "low":           safe_float(parts[34]),
+                "chg_pct":       safe_float(parts[32]),
+                "volume":        safe_float(parts[36]),
+                "amount":        safe_float(parts[37]),
+                "turnover_rate": safe_float(parts[38]),
+                "pe":            safe_float(parts[39]),
+                "amplitude":     safe_float(parts[43]),
+                "float_cap":     safe_float(parts[44]),
+                "total_cap":     safe_float(parts[45]),
+                "pb":            safe_float(parts[46]),
+                "vol_ratio":     safe_float(parts[49]) if len(parts) > 49 else 0.0,
+            }
+    except Exception as e:
+        print(f"snapshot fetch error: {e}")
+    return snap
+
+
+def _get_fund_flow(code: str) -> dict:
+    """东方财富资金流向（主力/超大单/大单/小单净额）。"""
+    mkt = "1" if code.startswith("6") else "0"
+    try:
+        r2 = _req.get(
+            "http://push2.eastmoney.com/api/qt/stock/fflow/kline/get",
+            params={"lmt": "1", "klt": "1",
+                    "fields1": "f1,f2,f3,f7",
+                    "fields2": "f51,f52,f53,f54,f55,f56,f57,f58",
+                    "secid": f"{mkt}.{code}"},
+            headers={"Referer": "http://quote.eastmoney.com/"}, timeout=6)
+        rows = (r2.json().get("data") or {}).get("klines") or []
+        if rows:
+            p = rows[-1].split(",")
+            return {"main_net": safe_float(p[1]), "huge_net": safe_float(p[2]),
+                    "large_net": safe_float(p[3]), "small_net": safe_float(p[5])}
+    except Exception:
+        pass
+    return {}
 
 
 # ── 胜率预测（基于十年历史回测数据）──────────────────────────────
@@ -322,11 +408,15 @@ def _run_scan_internal() -> dict:
     # 今日市场胜率
     today_weekday = datetime.now().weekday()
     market_wr = calc_market_win_rate(index_chg, today_weekday, 1)
+    # ── 大盘准入门槛（回测结论②：大盘当日涨幅 ≥ 0.5% 才操作）──
+    market_blocked = False
     if not above_ma250:
         market_cond = f"大盘在年线（MA250）下方 ⚠️ 结构性熊市，暂停买入"
         market_wr = max(30, market_wr - 10)   # 年线下方胜率大幅下调
+        market_blocked = True
     elif index_chg < 0.5:
-        market_cond = f"大盘+{index_chg:.2f}%，涨幅偏弱，历史胜率偏低"
+        market_cond = f"大盘+{index_chg:.2f}%，未达 0.5% 门槛 ⚠️ 暂停买入（回测结论②）"
+        market_blocked = True
     elif index_chg < 1.0:
         market_cond = f"大盘+{index_chg:.2f}%，0.5-1.0% 历史最优区间"
     elif index_chg < 2.0:
@@ -334,17 +424,17 @@ def _run_scan_internal() -> dict:
     else:
         market_cond = f"大盘+{index_chg:.2f}%，涨幅过大，次日谨慎追高"
 
-    # 年线下方：直接返回空结果，不扫描不买入
-    if not above_ma250:
+    # 大盘不达标（年线下方 或 涨幅 < 0.5%）：直接返回空结果，不扫描不买入
+    if market_blocked:
         return {
             "stocks": [], "index_chg": round(index_chg, 2),
             "total_scanned": 0, "total_found": 0,
             "elapsed": round(time.time() - t0, 1),
             "scan_time": datetime.now().strftime("%H:%M:%S"),
-            "active_criteria": sorted(active_criteria if 'active_criteria' in dir() else []),
+            "active_criteria": [],
             "market_win_rate": market_wr,
             "market_condition": market_cond,
-            "above_ma250": False,
+            "above_ma250": above_ma250,
         }
 
     # 读取活跃标准
@@ -384,6 +474,16 @@ def _run_scan_internal() -> dict:
 
         # ① 涨幅 3-5%（核心条件，始终保留）
         if not (3.0 <= chg_pct <= 5.0):
+            continue
+
+        # ── 回测结论①：只做沪市（mkt_code==1）──
+        if mkt_code != 1:
+            continue
+
+        # ── 回测结论③：超额大盘 2.0-2.5x（相对涨幅甜蜜区）──
+        #    此处 index_chg ≥ 0.5（已过大盘门槛），excess 有意义
+        excess = chg_pct / index_chg if index_chg > 0 else 0.0
+        if not (2.0 <= excess <= 2.5):
             continue
 
         to_ok       = (5.0 <= turnover <= 10.0)  if "turnover"   in active_criteria else False
@@ -430,7 +530,15 @@ def _run_scan_internal() -> dict:
             )
 
     candidates.sort(key=lambda x: (-x["score"], -x["vol_ratio"]))
-    result_stocks = candidates[:5]  # 只取 Top5
+
+    # ── 回测结论④：只保留站上 5 日均线（MA5）的个股 ──
+    # 按排序从高分往下逐只查 MA5，凑满 Top5 即停（控制 API 调用次数）
+    result_stocks = []
+    for s in candidates:
+        if len(result_stocks) >= 5:
+            break
+        if check_above_ma5(s["code"], s["mkt_code"]):
+            result_stocks.append(s)
 
     # 批量查询行业板块（东方财富 API，只有5只，很快）
     def _fetch_industry(code: str) -> str:
@@ -576,6 +684,32 @@ def api_actions_scan_and_buy():
     }
     _, sha = gh_read("sim_data/auto_buy.json")
     gh_write("sim_data/auto_buy.json", auto_buy, sha, f"auto: buy {today}")
+
+    # ── 买入当日 14:50 记录完整行情快照（含量比/换手/振幅/市值/资金流 +
+    #    买入决策元信息），供卖出后分析使用；卖出日不再重新采集，避免用错时点数据 ──
+    try:
+        snap_codes = [s["code"] for s in stocks]
+        quote_snap = _fetch_quote_snapshot(snap_codes)
+        buy_snapshots: dict = {}
+        for s in stocks:
+            c = s["code"]
+            qs = dict(quote_snap.get(c, {}))
+            qs.update(_get_fund_flow(c))
+            qs["buy_price"]    = s["price"]
+            qs["est_win_rate"] = s.get("est_win_rate")
+            qs["industry"]     = s.get("industry", "—")
+            qs["criteria"]     = s.get("criteria", {})
+            buy_snapshots[c] = qs
+        snap_path = f"sim_data/buy_snapshots/{today}.json"
+        _, snap_sha = gh_read(snap_path)
+        gh_write(snap_path, {
+            "date": today,
+            "snapshot_time": datetime.now().strftime("%H:%M:%S"),
+            "snapshots": buy_snapshots,
+        }, snap_sha, f"buy snapshot {today}")
+    except Exception as e:
+        print(f"buy snapshot error (non-fatal): {e}")
+
     return jsonify({"ok": True, "date": today, "count": len(stocks),
                     "stocks": [s["name"] for s in stocks]})
 
@@ -698,115 +832,82 @@ def api_actions_collect_trade_data():
     if not today_trades:
         return jsonify({"ok": False, "msg": f"今日({today})无成交记录"})
 
-    # 读取盘中价格
-    intraday, _ = gh_read(f"sim_data/intraday/{today}.json")
-    intraday = intraday or {}
+    # ── 读取"买入当日14:50"记录的行情快照（不再于卖出日重新采集，避免用错时点）──
+    # today_trades 的 buy_date 可能不同，按 buy_date 缓存读取
+    _snap_cache: dict = {}
+    def _load_buy_snap(bdate: str) -> dict:
+        if bdate not in _snap_cache:
+            s, _ = gh_read(f"sim_data/buy_snapshots/{bdate}.json")
+            _snap_cache[bdate] = (s or {}).get("snapshots", {})
+        return _snap_cache[bdate]
 
-    # 读取 auto_buy（含胜率/标准信息）
+    # ── 读取卖出日早盘价格（intraday 文件按 buy_date 命名，结构 {time:{code:price}}）──
+    _iday_cache: dict = {}
+    def _load_intraday(bdate: str) -> dict:
+        if bdate not in _iday_cache:
+            d, _ = gh_read(f"sim_data/intraday/{bdate}.json")
+            _iday_cache[bdate] = d or {}
+        return _iday_cache[bdate]
+
+    # 读取 auto_buy（卖出后通常已清空；仅作元信息兜底）
     auto_buy, _ = gh_read("sim_data/auto_buy.json")
     buy_map = {}
-    if auto_buy and auto_buy.get("date") == today:
+    if auto_buy:
         for p in auto_buy.get("positions", []):
             buy_map[p["code"]] = p
 
-    # 从腾讯API批量获取当前行情（含量比、换手率等）
-    codes = [t["code"] for t in today_trades]
-    qtcodes = [f"{'sh' if c.startswith('6') else 'sz'}{c}" for c in codes]
-    tencent_data = {}
-    try:
-        r = _req.get(f"http://qt.gtimg.cn/q={','.join(qtcodes)}", timeout=8)
-        for seg in r.text.strip().split(";"):
-            m = re.search(r'v_(\w+)="([^"]+)"', seg)
-            if not m: continue
-            parts = m.group(2).split("~")
-            if len(parts) < 50: continue
-            code = m.group(1)[2:]
-            tencent_data[code] = {
-                "name":         parts[1],
-                "close":        safe_float(parts[3]),
-                "prev_close":   safe_float(parts[4]),
-                "open":         safe_float(parts[5]),
-                "high":         safe_float(parts[33]),
-                "low":          safe_float(parts[34]),
-                "chg_pct":      safe_float(parts[32]),
-                "volume":       safe_float(parts[36]),
-                "amount":       safe_float(parts[37]),
-                "turnover_rate":safe_float(parts[38]),
-                "pe":           safe_float(parts[39]),
-                "amplitude":    safe_float(parts[43]),
-                "float_cap":    safe_float(parts[44]),
-                "total_cap":    safe_float(parts[45]),
-                "pb":           safe_float(parts[46]),
-                "vol_ratio":    safe_float(parts[49]) if len(parts) > 49 else 0.0,
-            }
-    except Exception as e:
-        print(f"Tencent fetch error: {e}")
-
-    # 从东方财富获取资金流向
-    def _get_flow(code):
-        mkt = "1" if code.startswith("6") else "0"
-        try:
-            r2 = _req.get("http://push2.eastmoney.com/api/qt/stock/fflow/kline/get",
-                params={"lmt":"1","klt":"1","fields1":"f1,f2,f3,f7","fields2":"f51,f52,f53,f54,f55,f56,f57,f58",
-                        "secid":f"{mkt}.{code}"},
-                headers={"Referer":"http://quote.eastmoney.com/"}, timeout=6)
-            rows = (r2.json().get("data") or {}).get("klines") or []
-            if rows:
-                p = rows[-1].split(",")
-                return {"main_net":safe_float(p[1]),"huge_net":safe_float(p[2]),
-                        "large_net":safe_float(p[3]),"small_net":safe_float(p[5])}
-        except Exception:
-            pass
-        return {}
-
-    # 组装完整记录
+    # 组装完整记录（行情特征取自买入当日14:50快照，结果取自卖出成交）
     detail_records = []
     for t in today_trades:
         code = t["code"]
-        td = tencent_data.get(code, {})
-        flow = _get_flow(code)
+        bdate = t.get("buy_date", today)
+        snap = _load_buy_snap(bdate).get(code, {})
         bp = buy_map.get(code, {})
-        iday = intraday.get(code, {})
+        iday = _load_intraday(bdate)          # {time: {code: price}}
+
+        def _ip(tm, _code=code, _iday=iday):  # 取卖出日早盘某时点价格
+            return (_iday.get(tm) or {}).get(_code)
 
         rec = {
             "trade_date":    today,
             "code":          code,
-            "name":          td.get("name") or t.get("name", ""),
-            "industry":      bp.get("industry", ""),
+            "name":          snap.get("name") or t.get("name", ""),
+            "industry":      snap.get("industry") or bp.get("industry", ""),
             "buy_price":     t.get("buy_price"),
             "buy_time":      t.get("buy_time", ""),
             "sell_price":    t.get("sell_price"),
             "sell_time":     "10:01:00",
             "return_pct":    t.get("return_pct"),
-            "open":          td.get("open"),
-            "high":          td.get("high"),
-            "low":           td.get("low"),
-            "close":         td.get("close"),
-            "prev_close":    td.get("prev_close"),
-            "volume":        td.get("volume"),
-            "amount":        td.get("amount"),
-            "amplitude":     td.get("amplitude"),
-            "chg_pct":       td.get("chg_pct"),
-            "turnover_rate": td.get("turnover_rate"),
-            "vol_ratio":     td.get("vol_ratio"),
-            "float_cap":     td.get("float_cap"),
-            "total_cap":     td.get("total_cap"),
-            "pe":            td.get("pe"),
-            "pb":            td.get("pb"),
-            "main_net":      flow.get("main_net"),
-            "huge_net":      flow.get("huge_net"),
-            "large_net":     flow.get("large_net"),
-            "small_net":     flow.get("small_net"),
-            "price_next_open": iday.get("price_next_open") or t.get("sell_price"),
-            "price_0930":    iday.get("09:30"),
-            "price_0935":    iday.get("09:35"),
-            "price_0940":    iday.get("09:40"),
-            "price_0945":    iday.get("09:45"),
-            "price_0950":    iday.get("09:50"),
-            "price_0955":    iday.get("09:55"),
-            "price_1000":    iday.get("10:00"),
-            "est_win_rate":  bp.get("est_win_rate"),
-            "criteria":      str(bp.get("criteria", {})),
+            "snapshot_at":   "buy_1450",   # 行情快照采集时点：买入当日14:50
+            "open":          snap.get("open"),
+            "high":          snap.get("high"),
+            "low":           snap.get("low"),
+            "close":         snap.get("close"),
+            "prev_close":    snap.get("prev_close"),
+            "volume":        snap.get("volume"),
+            "amount":        snap.get("amount"),
+            "amplitude":     snap.get("amplitude"),
+            "chg_pct":       snap.get("chg_pct"),
+            "turnover_rate": snap.get("turnover_rate"),
+            "vol_ratio":     snap.get("vol_ratio"),
+            "float_cap":     snap.get("float_cap"),
+            "total_cap":     snap.get("total_cap"),
+            "pe":            snap.get("pe"),
+            "pb":            snap.get("pb"),
+            "main_net":      snap.get("main_net"),
+            "huge_net":      snap.get("huge_net"),
+            "large_net":     snap.get("large_net"),
+            "small_net":     snap.get("small_net"),
+            "price_next_open": _ip("09:30") or t.get("sell_price"),
+            "price_0930":    _ip("09:30"),
+            "price_0935":    _ip("09:35"),
+            "price_0940":    _ip("09:40"),
+            "price_0945":    _ip("09:45"),
+            "price_0950":    _ip("09:50"),
+            "price_0955":    _ip("09:55"),
+            "price_1000":    _ip("10:00"),
+            "est_win_rate":  snap.get("est_win_rate") if snap.get("est_win_rate") is not None else bp.get("est_win_rate"),
+            "criteria":      str(snap.get("criteria") or bp.get("criteria", {})),
         }
         detail_records.append(rec)
 
