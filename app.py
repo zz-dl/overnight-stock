@@ -289,6 +289,35 @@ def _get_fund_flow(code: str) -> dict:
     return {}
 
 
+def _sorted_intraday_times(intraday: dict) -> list[str]:
+    """Return recorded intraday timestamps in chronological order."""
+    if not isinstance(intraday, dict):
+        return []
+    times = []
+    for key, val in intraday.items():
+        if isinstance(val, dict) and re.match(r"^\d{1,2}:\d{2}$", str(key)):
+            times.append(str(key))
+    return sorted(times, key=lambda t: tuple(int(x) for x in t.split(":")))
+
+
+def _intraday_price_points(intraday: dict, code: str) -> dict:
+    """Map actual recorded price samples to the standard 09:30-10:00 fields."""
+    labels = ["09:30", "09:35", "09:40", "09:45", "09:50", "09:55", "10:00"]
+    times = _sorted_intraday_times(intraday)
+    points = {}
+    for label, actual in zip(labels, times):
+        points[label] = (intraday.get(actual) or {}).get(code)
+    return points
+
+
+def _latest_intraday_prices(intraday: dict) -> dict:
+    """Use the latest recorded intraday sample as the sell-price fallback."""
+    times = _sorted_intraday_times(intraday)
+    if not times:
+        return {}
+    return intraday.get(times[-1], {}) or {}
+
+
 # ── 胜率预测（基于十年历史回测数据）──────────────────────────────
 _IC_BASE = {(0.5, 1.0): 54, (1.0, 2.0): 43, (2.0, 99): 47, (0.0, 0.5): 38}
 _WEEKDAY_BONUS = {0: 1, 1: -1, 2: 0, 3: 0, 4: 2}
@@ -669,6 +698,8 @@ def api_actions_scan_and_buy():
     result = _run_scan_internal()
     stocks = result.get("stocks", [])[:5]
     if not stocks:
+        _, sha = gh_read("sim_data/auto_buy.json")
+        gh_write("sim_data/auto_buy.json", {}, sha, f"auto: no buy {today}")
         return jsonify({"ok": False, "msg": "无候选股（年线下方或无满足条件股票）", "date": today})
 
     auto_buy = {
@@ -761,7 +792,7 @@ def api_actions_sell():
 
     # 取10:00价格（先找 intraday，找不到就实时查）
     intraday, _ = gh_read(f"sim_data/intraday/{buy_date}.json")
-    sell_prices = (intraday or {}).get("10:00", {})
+    sell_prices = (intraday or {}).get("10:00", {}) or _latest_intraday_prices(intraday or {})
 
     if not sell_prices:
         # 实时查当前价格作为卖出价
@@ -864,9 +895,7 @@ def api_actions_collect_trade_data():
         snap = _load_buy_snap(bdate).get(code, {})
         bp = buy_map.get(code, {})
         iday = _load_intraday(bdate)          # {time: {code: price}}
-
-        def _ip(tm, _code=code, _iday=iday):  # 取卖出日早盘某时点价格
-            return (_iday.get(tm) or {}).get(_code)
+        ipoints = _intraday_price_points(iday, code)
 
         rec = {
             "trade_date":    today,
@@ -898,14 +927,14 @@ def api_actions_collect_trade_data():
             "huge_net":      snap.get("huge_net"),
             "large_net":     snap.get("large_net"),
             "small_net":     snap.get("small_net"),
-            "price_next_open": _ip("09:30") or t.get("sell_price"),
-            "price_0930":    _ip("09:30"),
-            "price_0935":    _ip("09:35"),
-            "price_0940":    _ip("09:40"),
-            "price_0945":    _ip("09:45"),
-            "price_0950":    _ip("09:50"),
-            "price_0955":    _ip("09:55"),
-            "price_1000":    _ip("10:00"),
+            "price_next_open": ipoints.get("09:30") or t.get("sell_price"),
+            "price_0930":    ipoints.get("09:30"),
+            "price_0935":    ipoints.get("09:35"),
+            "price_0940":    ipoints.get("09:40"),
+            "price_0945":    ipoints.get("09:45"),
+            "price_0950":    ipoints.get("09:50"),
+            "price_0955":    ipoints.get("09:55"),
+            "price_1000":    ipoints.get("10:00"),
             "est_win_rate":  snap.get("est_win_rate") if snap.get("est_win_rate") is not None else bp.get("est_win_rate"),
             "criteria":      str(snap.get("criteria") or bp.get("criteria", {})),
         }
@@ -920,7 +949,7 @@ def api_actions_collect_trade_data():
                     "stocks": [r["name"] for r in detail_records]})
 
 
-APP_VERSION = "v6-sh-only-4rules-buysnap"
+APP_VERSION = "v7-intraday-sample-fallback"
 
 
 @app.route("/api/version")
