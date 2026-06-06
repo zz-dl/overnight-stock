@@ -920,7 +920,7 @@ def api_actions_collect_trade_data():
                     "stocks": [r["name"] for r in detail_records]})
 
 
-APP_VERSION = "v5-sync-scan"
+APP_VERSION = "v6-sh-only-4rules-buysnap"
 
 
 @app.route("/api/version")
