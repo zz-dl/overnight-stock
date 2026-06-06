@@ -8,8 +8,9 @@
       "buy_price": 21.95,
       "sell_price": 21.85,
       "return_pct": -0.56,
-      "industry": "—",
-      "est_win_rate": 33
+      "industry": "化学制品",
+      "est_win_rate": 33,
+      "buy_time": "14:50:00"
     },
     {
       "code": "601133",
@@ -19,8 +20,9 @@
       "buy_price": 27.46,
       "sell_price": 28.26,
       "return_pct": 2.81,
-      "industry": "—",
-      "est_win_rate": 33
+      "industry": "专业工程",
+      "est_win_rate": 33,
+      "buy_time": "14:50:00"
     },
     {
       "code": "300497",
@@ -30,8 +32,9 @@
       "buy_price": 16.05,
       "sell_price": 15.79,
       "return_pct": -1.72,
-      "industry": "—",
-      "est_win_rate": 33
+      "industry": "化学制药",
+      "est_win_rate": 33,
+      "buy_time": "14:50:00"
     },
     {
       "code": "603052",
@@ -41,19 +44,21 @@
       "buy_price": 94.96,
       "sell_price": 93.94,
       "return_pct": -1.17,
-      "industry": "—",
-      "est_win_rate": 33
+      "industry": "消费电子",
+      "est_win_rate": 33,
+      "buy_time": "14:50:00"
     },
     {
       "code": "603124",
-      "name": "XD江南新",
+      "name": "江南新材",
       "buy_date": "2026-06-03",
       "sell_date": "2026-06-04",
       "buy_price": 148.32,
       "sell_price": 152.46,
       "return_pct": 2.69,
-      "industry": "—",
-      "est_win_rate": 33
+      "industry": "金属新材料",
+      "est_win_rate": 33,
+      "buy_time": "14:50:00"
     },
     {
       "code": "600198",
@@ -63,8 +68,9 @@
       "buy_price": 9.25,
       "sell_price": 8.97,
       "return_pct": -3.13,
-      "industry": "—",
-      "est_win_rate": 33
+      "industry": "通信设备",
+      "est_win_rate": 33,
+      "buy_time": "14:50:00"
     },
     {
       "code": "601011",
@@ -74,8 +80,9 @@
       "buy_price": 3.19,
       "sell_price": 3.3,
       "return_pct": 3.35,
-      "industry": "—",
-      "est_win_rate": 33
+      "industry": "焦炭Ⅱ",
+      "est_win_rate": 33,
+      "buy_time": "14:50:00"
     },
     {
       "code": "002254",
@@ -85,8 +92,9 @@
       "buy_price": 14.12,
       "sell_price": 15.53,
       "return_pct": 9.89,
-      "industry": "—",
-      "est_win_rate": 33
+      "industry": "化学纤维",
+      "est_win_rate": 33,
+      "buy_time": "14:50:00"
     },
     {
       "code": "000620",
@@ -96,8 +104,9 @@
       "buy_price": 2.98,
       "sell_price": 2.88,
       "return_pct": -3.46,
-      "industry": "—",
-      "est_win_rate": 33
+      "industry": "房地产开发",
+      "est_win_rate": 33,
+      "buy_time": "14:50:00"
     },
     {
       "code": "603158",
@@ -107,8 +116,9 @@
       "buy_price": 15.74,
       "sell_price": 16.53,
       "return_pct": 4.92,
-      "industry": "—",
-      "est_win_rate": 33
+      "industry": "汽车零部件",
+      "est_win_rate": 33,
+      "buy_time": "14:50:00"
     }
   ]
 }
