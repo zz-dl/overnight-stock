@@ -289,6 +289,31 @@ def _get_fund_flow(code: str) -> dict:
     return {}
 
 
+def _fetch_industry(code: str) -> str:
+    """Fetch industry from EastMoney; fall back to first concept/region if industry is missing."""
+    mkt = "1" if code.startswith("6") else "0"
+    try:
+        r = _req.get(
+            "http://push2.eastmoney.com/api/qt/stock/get",
+            params={"secid": f"{mkt}.{code}", "fields": "f127,f128,f129"},
+            headers={"User-Agent": "Mozilla/5.0", "Referer": "http://quote.eastmoney.com/"},
+            timeout=5,
+        )
+        data = r.json().get("data") or {}
+        industry = data.get("f127")
+        if industry and industry != "-":
+            return industry
+        concepts = data.get("f129")
+        if concepts and concepts != "-":
+            return f"概念:{concepts.split(',')[0]}"
+        region = data.get("f128")
+        if region and region != "-":
+            return f"地域:{region}"
+    except Exception:
+        pass
+    return "—"
+
+
 def _sorted_intraday_times(intraday: dict) -> list[str]:
     """Return recorded intraday timestamps in chronological order."""
     if not isinstance(intraday, dict):
@@ -570,16 +595,6 @@ def _run_scan_internal() -> dict:
             result_stocks.append(s)
 
     # 批量查询行业板块（东方财富 API，只有5只，很快）
-    def _fetch_industry(code: str) -> str:
-        mkt = "1" if code.startswith("6") else "0"
-        try:
-            r = _req.get("http://push2.eastmoney.com/api/qt/stock/get",
-                params={"secid": f"{mkt}.{code}", "fields": "f127"},
-                timeout=5)
-            return (r.json().get("data") or {}).get("f127") or "—"
-        except Exception:
-            return "—"
-
     for s in result_stocks:
         s["industry"] = _fetch_industry(s["code"])
 
@@ -829,6 +844,7 @@ def api_actions_sell():
         settled.append({
             "code": code, "name": pos["name"],
             "buy_date": buy_date, "sell_date": today,
+            "buy_time": auto_buy.get("buy_time", ""),
             "buy_price": round(buy_px, 3), "sell_price": round(sell_px, 3),
             "return_pct": ret, "industry": pos.get("industry", "—"),
             "est_win_rate": pos.get("est_win_rate"),
@@ -954,7 +970,7 @@ def api_actions_collect_trade_data():
                     "stocks": [r["name"] for r in detail_records]})
 
 
-APP_VERSION = "v8-trade-history-field-fill"
+APP_VERSION = "v9-industry-buy-time-fill"
 
 
 @app.route("/api/version")
