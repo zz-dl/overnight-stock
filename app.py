@@ -38,6 +38,52 @@ def safe_float(v, default=0.0):
         return default
 
 
+# Signal snapshots for strategy-level evaluation.
+def build_signal_snapshot_records(today: str, stocks: list[dict], result: dict | None = None) -> list[dict]:
+    """Capture the 14:50 Top5 candidates before the next-morning sell check."""
+    result = result or {}
+    records: list[dict] = []
+    for i, s in enumerate(stocks or [], 1):
+        criteria = s.get("criteria", {})
+        records.append({
+            "source_app": "overnight_stock",
+            "strategy": "overnight_top5_1450",
+            "snapshot_date": today,
+            "snapshot_time": "14:50:00",
+            "sequence": i,
+            "code": s.get("code", ""),
+            "name": s.get("name", s.get("code", "")),
+            "market": "A",
+            "industry": s.get("industry", ""),
+            "rank": i,
+            "score": s.get("est_win_rate") or s.get("score"),
+            "recommendation": "buy",
+            "signal_action": "buy_top5",
+            "price": s.get("price") or s.get("buy_price"),
+            "open": s.get("open"),
+            "close": s.get("close"),
+            "chg_pct": s.get("chg_pct") or s.get("f3"),
+            "vol_ratio": s.get("vol_ratio") or s.get("f10"),
+            "turnover": s.get("turnover_rate") or s.get("turnover"),
+            "capital_net": s.get("main_net"),
+            "market_state": {
+                "market_win_rate": result.get("market_win_rate"),
+                "index_chg": result.get("index_chg"),
+            },
+            "weights": {},
+            "factors": {"criteria": criteria},
+            "news": s.get("news", []),
+            "raw": s,
+            "forward_returns": {
+                "next_open_pct": None,
+                "next_close_pct": None,
+                "return_5d_pct": None,
+                "return_20d_pct": None,
+            },
+        })
+    return records
+
+
 # ── 上证指数涨跌幅 ─────────────────────────────────────────────
 def get_index_chg() -> float:
     try:
@@ -715,6 +761,14 @@ def api_actions_scan_and_buy():
     if not stocks:
         _, sha = gh_read("sim_data/auto_buy.json")
         gh_write("sim_data/auto_buy.json", {}, sha, f"auto: no buy {today}")
+        snapshot_path = f"sim_data/signal_snapshots/{today}.json"
+        _, snapshot_sha = gh_read(snapshot_path)
+        gh_write(snapshot_path, {
+            "date": today,
+            "source_app": "overnight_stock",
+            "strategy": "overnight_top5_1450",
+            "records": [],
+        }, snapshot_sha, f"signal snapshot empty {today}")
         return jsonify({"ok": False, "msg": "无候选股（年线下方或无满足条件股票）", "date": today})
 
     auto_buy = {
@@ -731,6 +785,16 @@ def api_actions_scan_and_buy():
     }
     _, sha = gh_read("sim_data/auto_buy.json")
     gh_write("sim_data/auto_buy.json", auto_buy, sha, f"auto: buy {today}")
+
+    signal_snapshot = {
+        "date": today,
+        "source_app": "overnight_stock",
+        "strategy": "overnight_top5_1450",
+        "records": build_signal_snapshot_records(today, stocks, result),
+    }
+    snapshot_path = f"sim_data/signal_snapshots/{today}.json"
+    _, snapshot_sha = gh_read(snapshot_path)
+    gh_write(snapshot_path, signal_snapshot, snapshot_sha, f"signal snapshot {today}")
 
     # ── 买入当日 14:50 记录完整行情快照（含量比/换手/振幅/市值/资金流 +
     #    买入决策元信息），供卖出后分析使用；卖出日不再重新采集，避免用错时点数据 ──
