@@ -22,6 +22,7 @@ from sim import (
 socket.setdefaulttimeout(8)
 
 app = Flask(__name__, static_folder="static")
+STRATEGY_BUY_TIME = "14:50:00"
 
 _req = requests.Session()
 _req.headers.update({
@@ -49,7 +50,7 @@ def build_signal_snapshot_records(today: str, stocks: list[dict], result: dict |
             "source_app": "overnight_stock",
             "strategy": "overnight_top5_1450",
             "snapshot_date": today,
-            "snapshot_time": "14:50:00",
+            "snapshot_time": STRATEGY_BUY_TIME,
             "sequence": i,
             "code": s.get("code", ""),
             "name": s.get("name", s.get("code", "")),
@@ -773,7 +774,7 @@ def api_actions_scan_and_buy():
 
     auto_buy = {
         "date": today,
-        "buy_time": "14:50:00",
+        "buy_time": STRATEGY_BUY_TIME,
         "market_win_rate": result.get("market_win_rate"),
         "index_chg": result.get("index_chg"),
         "positions": [
@@ -908,7 +909,7 @@ def api_actions_sell():
         settled.append({
             "code": code, "name": pos["name"],
             "buy_date": buy_date, "sell_date": today,
-            "buy_time": auto_buy.get("buy_time", ""),
+            "buy_time": STRATEGY_BUY_TIME,
             "buy_price": round(buy_px, 3), "sell_price": round(sell_px, 3),
             "return_pct": ret, "industry": pos.get("industry", "—"),
             "est_win_rate": pos.get("est_win_rate"),
@@ -988,7 +989,7 @@ def api_actions_collect_trade_data():
             "name":          snap.get("name") or t.get("name", ""),
             "industry":      snap.get("industry") or bp.get("industry", ""),
             "buy_price":     t.get("buy_price"),
-            "buy_time":      t.get("buy_time", ""),
+            "buy_time":      STRATEGY_BUY_TIME,
             "sell_price":    t.get("sell_price"),
             "sell_time":     "10:01:00",
             "return_pct":    t.get("return_pct"),
