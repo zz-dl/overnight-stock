@@ -17,7 +17,7 @@
         "stronger": true
       },
       "est_win_rate": 45,
-      "industry": "—"
+      "industry": "自动化设备"
     },
     {
       "code": "600552",
@@ -32,7 +32,7 @@
         "stronger": true
       },
       "est_win_rate": 45,
-      "industry": "—"
+      "industry": "光学光电子"
     },
     {
       "code": "688239",
@@ -47,7 +47,7 @@
         "stronger": true
       },
       "est_win_rate": 45,
-      "industry": "—"
+      "industry": "航空装备Ⅱ"
     },
     {
       "code": "600547",
@@ -62,7 +62,7 @@
         "stronger": true
       },
       "est_win_rate": 45,
-      "industry": "—"
+      "industry": "贵金属"
     },
     {
       "code": "600126",
@@ -77,7 +77,7 @@
         "stronger": true
       },
       "est_win_rate": 45,
-      "industry": "—"
+      "industry": "普钢"
     }
   ]
 }

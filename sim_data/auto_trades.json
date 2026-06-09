@@ -129,7 +129,7 @@
       "buy_price": 4.38,
       "sell_price": 4.29,
       "return_pct": -2.15,
-      "industry": "—",
+      "industry": "玻璃玻纤",
       "est_win_rate": 35
     },
     {
@@ -141,7 +141,7 @@
       "buy_price": 6.88,
       "sell_price": 7.11,
       "return_pct": 3.24,
-      "industry": "—",
+      "industry": "光学光电子",
       "est_win_rate": 35
     },
     {
@@ -153,7 +153,7 @@
       "buy_price": 3.29,
       "sell_price": 3.28,
       "return_pct": -0.4,
-      "industry": "—",
+      "industry": "焦炭Ⅱ",
       "est_win_rate": 35
     },
     {
@@ -165,7 +165,7 @@
       "buy_price": 42.82,
       "sell_price": 43.59,
       "return_pct": 1.7,
-      "industry": "—",
+      "industry": "通用设备",
       "est_win_rate": 35
     },
     {
@@ -177,7 +177,7 @@
       "buy_price": 11.86,
       "sell_price": 11.15,
       "return_pct": -6.09,
-      "industry": "—",
+      "industry": "航空装备Ⅱ",
       "est_win_rate": 35
     }
   ]

@@ -383,23 +383,53 @@ def _get_fund_flow(code: str) -> dict:
 def _fetch_industry(code: str) -> str:
     """Fetch industry from EastMoney; fall back to first concept/region if industry is missing."""
     mkt = "1" if code.startswith("6") else "0"
-    try:
-        r = _req.get(
-            "http://push2.eastmoney.com/api/qt/stock/get",
-            params={"secid": f"{mkt}.{code}", "fields": "f127,f128,f129"},
-            headers={"User-Agent": "Mozilla/5.0", "Referer": "http://quote.eastmoney.com/"},
-            timeout=5,
-        )
-        data = r.json().get("data") or {}
-        industry = data.get("f127")
-        if industry and industry != "-":
+
+    def clean_text(value) -> str:
+        if not isinstance(value, str):
+            return ""
+        text = value.strip()
+        return text if text and text not in ("-", "—") else ""
+
+    def industry_from_payload(data: dict) -> str:
+        industry = clean_text(data.get("f100")) or clean_text(data.get("f127"))
+        if industry:
             return industry
-        concepts = data.get("f129")
-        if concepts and concepts != "-":
+        concepts = clean_text(data.get("f129") or data.get("f103"))
+        if concepts:
             return f"概念:{concepts.split(',')[0]}"
-        region = data.get("f128")
-        if region and region != "-":
+        region = clean_text(data.get("f128") or data.get("f102"))
+        if region:
             return f"地域:{region}"
+        return ""
+
+    try:
+        for host in ("push2.eastmoney.com", "push2delay.eastmoney.com"):
+            r = _req.get(
+                f"https://{host}/api/qt/stock/get",
+                params={"secid": f"{mkt}.{code}", "fields": "f100,f127,f128,f129"},
+                headers={"User-Agent": "Mozilla/5.0", "Referer": "https://quote.eastmoney.com/"},
+                timeout=5,
+            )
+            industry = industry_from_payload(r.json().get("data") or {})
+            if industry:
+                return industry
+
+        r = _req.get(
+            "https://push2.eastmoney.com/api/qt/ulist.np/get",
+            params={
+                "fltt": "2",
+                "invt": "2",
+                "fields": "f12,f14,f100,f102,f103",
+                "secids": f"{mkt}.{code}",
+            },
+            headers={"User-Agent": "Mozilla/5.0", "Referer": "https://quote.eastmoney.com/"},
+            timeout=8,
+        )
+        rows = ((r.json().get("data") or {}).get("diff") or [])
+        if rows:
+            industry = industry_from_payload(rows[0])
+            if industry:
+                return industry
     except Exception:
         pass
     return "—"
