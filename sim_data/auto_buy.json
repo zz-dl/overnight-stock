@@ -1,1 +1,83 @@
-{}
+{
+  "date": "2026-06-09",
+  "buy_time": "14:50:00",
+  "market_win_rate": 42,
+  "index_chg": 1.28,
+  "positions": [
+    {
+      "code": "603283",
+      "name": "赛腾股份",
+      "buy_price": 47.67,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": false,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "est_win_rate": 45,
+      "industry": "—"
+    },
+    {
+      "code": "600552",
+      "name": "凯盛科技",
+      "buy_price": 22.74,
+      "criteria": {
+        "chg": true,
+        "turnover": false,
+        "vol_ratio": true,
+        "cap": false,
+        "vwap": true,
+        "stronger": true
+      },
+      "est_win_rate": 45,
+      "industry": "—"
+    },
+    {
+      "code": "688239",
+      "name": "航宇科技",
+      "buy_price": 54.16,
+      "criteria": {
+        "chg": true,
+        "turnover": false,
+        "vol_ratio": true,
+        "cap": false,
+        "vwap": true,
+        "stronger": true
+      },
+      "est_win_rate": 45,
+      "industry": "—"
+    },
+    {
+      "code": "600547",
+      "name": "山东黄金",
+      "buy_price": 27.3,
+      "criteria": {
+        "chg": true,
+        "turnover": false,
+        "vol_ratio": true,
+        "cap": false,
+        "vwap": true,
+        "stronger": true
+      },
+      "est_win_rate": 45,
+      "industry": "—"
+    },
+    {
+      "code": "600126",
+      "name": "杭钢股份",
+      "buy_price": 7.05,
+      "criteria": {
+        "chg": true,
+        "turnover": false,
+        "vol_ratio": true,
+        "cap": false,
+        "vwap": true,
+        "stronger": true
+      },
+      "est_win_rate": 45,
+      "industry": "—"
+    }
+  ]
+}
