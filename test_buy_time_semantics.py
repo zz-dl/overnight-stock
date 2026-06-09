@@ -48,14 +48,17 @@ def test_sell_endpoint_normalizes_legacy_buy_time():
 
     old_read = app_module.gh_read
     old_write = app_module.gh_write
+    old_now = app_module._now_cn
     try:
         app_module.gh_read = fake_read
         app_module.gh_write = fake_write
+        app_module._now_cn = lambda: app_module.datetime(2026, 6, 8, 10, 1, tzinfo=app_module.MARKET_TZ)
         with app_module.app.test_request_context(method="POST"):
             response = app_module.api_actions_sell()
     finally:
         app_module.gh_read = old_read
         app_module.gh_write = old_write
+        app_module._now_cn = old_now
 
     check("sell endpoint succeeds with legacy buy_time", response.json["ok"])
     written = writes["sim_data/auto_trades.json"]["trades"][0]

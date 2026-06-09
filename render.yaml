@@ -2,8 +2,53 @@ services:
   - type: web
     name: overnight-stock
     runtime: python
+    branch: master
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app --workers 1 --threads 4 --timeout 120
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
+  - type: cron
+    name: overnight-stock-scan-and-buy
+    runtime: python
+    schedule: "50 6 * * 1-5"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python scripts/render_cron_call.py scan-and-buy
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: OVERNIGHT_STOCK_BASE_URL
+        value: https://overnight-stock.onrender.com
+  - type: cron
+    name: overnight-stock-track-prices
+    runtime: python
+    schedule: "*/5 1-2 * * 1-5"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python scripts/render_cron_call.py track-prices
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: OVERNIGHT_STOCK_BASE_URL
+        value: https://overnight-stock.onrender.com
+  - type: cron
+    name: overnight-stock-sell
+    runtime: python
+    schedule: "1 2 * * 1-5"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python scripts/render_cron_call.py sell
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: OVERNIGHT_STOCK_BASE_URL
+        value: https://overnight-stock.onrender.com
+  - type: cron
+    name: overnight-stock-collect-trade-data
+    runtime: python
+    schedule: "30 7 * * 1-5"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python scripts/render_cron_call.py collect-trade-data
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: OVERNIGHT_STOCK_BASE_URL
+        value: https://overnight-stock.onrender.com

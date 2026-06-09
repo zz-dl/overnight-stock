@@ -9,6 +9,7 @@ import threading
 import time
 from datetime import datetime, date
 from math import isnan
+from zoneinfo import ZoneInfo
 
 import requests
 from flask import Flask, jsonify, send_from_directory
@@ -23,6 +24,13 @@ socket.setdefaulttimeout(8)
 
 app = Flask(__name__, static_folder="static")
 STRATEGY_BUY_TIME = "14:50:00"
+MARKET_TZ = ZoneInfo("Asia/Shanghai")
+ACTION_WINDOWS = {
+    "track_prices": ((9, 30), (10, 0)),
+    "sell": ((9, 58), (10, 10)),
+    "scan_and_buy": ((14, 45), (15, 0)),
+    "collect_trade_data": ((15, 25), (23, 59)),
+}
 
 _req = requests.Session()
 _req.headers.update({
@@ -37,6 +45,42 @@ def safe_float(v, default=0.0):
         return default if isnan(f) else f
     except Exception:
         return default
+
+
+def _now_cn() -> datetime:
+    return datetime.now(MARKET_TZ)
+
+
+def _today_cn() -> date:
+    return _now_cn().date()
+
+
+def _hm_value(hm: tuple[int, int]) -> int:
+    return hm[0] * 60 + hm[1]
+
+
+def _action_in_window(action: str, now_cn: datetime | None = None) -> bool:
+    now_cn = now_cn or _now_cn()
+    if now_cn.tzinfo is not None:
+        now_cn = now_cn.astimezone(MARKET_TZ)
+    window = ACTION_WINDOWS.get(action)
+    if not window or now_cn.weekday() >= 5:
+        return False
+    current = now_cn.hour * 60 + now_cn.minute
+    start, end = window
+    return _hm_value(start) <= current <= _hm_value(end)
+
+
+def _outside_window_response(action: str, now_cn: datetime | None = None):
+    now_cn = now_cn or _now_cn()
+    if now_cn.tzinfo is not None:
+        now_cn = now_cn.astimezone(MARKET_TZ)
+    return jsonify({
+        "ok": False,
+        "msg": f"outside {action} window",
+        "date": now_cn.date().isoformat(),
+        "market_time": now_cn.strftime("%H:%M:%S"),
+    })
 
 
 # Signal snapshots for strategy-level evaluation.
@@ -373,12 +417,13 @@ def _sorted_intraday_times(intraday: dict) -> list[str]:
 
 
 def _intraday_price_points(intraday: dict, code: str) -> dict:
-    """Map actual recorded price samples to the standard 09:30-10:00 fields."""
+    """Return prices only for exact 09:30-10:00 market-time samples."""
     labels = ["09:30", "09:35", "09:40", "09:45", "09:50", "09:55", "10:00"]
-    times = _sorted_intraday_times(intraday)
     points = {}
-    for label, actual in zip(labels, times):
-        points[label] = (intraday.get(actual) or {}).get(code)
+    for label in labels:
+        price = (intraday.get(label) or {}).get(code)
+        if price is not None:
+            points[label] = price
     return points
 
 
@@ -434,7 +479,7 @@ def build_reasons(chg_pct: float, index_chg: float,
 # ── 模拟交易：结算 + 记录 ─────────────────────────────────────
 def _sim_run_settlement_and_record(scan_stocks: list) -> None:
     """在扫描完成后：结算昨日买入，更新胜率，记录今日 6/7+ 候选。"""
-    today = date.today().isoformat()
+    today = _today_cn().isoformat()
 
     # 读取当前数据
     pending, pending_sha     = gh_read("sim_data/pending.json")
@@ -489,10 +534,11 @@ def _sim_run_settlement_and_record(scan_stocks: list) -> None:
     ]
 
     # 只在 14:30-15:00 之间记录模拟买入（非尾盘时段扫描不算买入）
-    now_h, now_m = datetime.now().hour, datetime.now().minute
+    now_cn = _now_cn()
+    now_h, now_m = now_cn.hour, now_cn.minute
     in_buy_window = (14, 30) <= (now_h, now_m) <= (15, 0)
     if sim_candidates and in_buy_window:
-        new_pending = {"date": today, "scan_time": datetime.now().strftime("%H:%M:%S"),
+        new_pending = {"date": today, "scan_time": now_cn.strftime("%H:%M:%S"),
                        "positions": sim_candidates}
         _, p_sha = gh_read("sim_data/pending.json")
         gh_write("sim_data/pending.json", new_pending, p_sha, f"sim: pending {today}")
@@ -507,7 +553,7 @@ def _run_scan_internal() -> dict:
     above_ma250 = get_index_above_ma250()
 
     # 今日市场胜率
-    today_weekday = datetime.now().weekday()
+    today_weekday = _now_cn().weekday()
     market_wr = calc_market_win_rate(index_chg, today_weekday, 1)
     # ── 大盘准入门槛（回测结论②：大盘当日涨幅 ≥ 0.5% 才操作）──
     market_blocked = False
@@ -531,7 +577,7 @@ def _run_scan_internal() -> dict:
             "stocks": [], "index_chg": round(index_chg, 2),
             "total_scanned": 0, "total_found": 0,
             "elapsed": round(time.time() - t0, 1),
-            "scan_time": datetime.now().strftime("%H:%M:%S"),
+            "scan_time": _now_cn().strftime("%H:%M:%S"),
             "active_criteria": [],
             "market_win_rate": market_wr,
             "market_condition": market_cond,
@@ -551,7 +597,7 @@ def _run_scan_internal() -> dict:
             "error": "无法获取行情数据，请稍后重试",
             "stocks": [], "index_chg": index_chg,
             "total_found": 0, "elapsed": 0,
-            "scan_time": datetime.now().strftime("%H:%M:%S"),
+            "scan_time": _now_cn().strftime("%H:%M:%S"),
         }
 
     candidates = []
@@ -663,7 +709,7 @@ def _run_scan_internal() -> dict:
         "total_scanned": len(raw),
         "total_found": len(candidates),
         "elapsed": round(time.time() - t0, 1),
-        "scan_time": datetime.now().strftime("%H:%M:%S"),
+        "scan_time": _now_cn().strftime("%H:%M:%S"),
         "active_criteria": sorted(active_criteria),
         "market_win_rate": market_wr,
         "market_condition": market_cond,
@@ -743,7 +789,7 @@ def api_auto_trades():
 @app.route("/api/index")
 def api_index():
     chg = get_index_chg()
-    return jsonify({"chg": round(chg, 2), "time": datetime.now().strftime("%H:%M:%S")})
+    return jsonify({"chg": round(chg, 2), "time": _now_cn().strftime("%H:%M:%S")})
 
 
 # ── GitHub Actions 定时任务端点 ──────────────────────────────────────────────
@@ -751,7 +797,10 @@ def api_index():
 @app.route("/api/actions/scan-and-buy", methods=["POST"])
 def api_actions_scan_and_buy():
     """14:50 GitHub Actions 调用：扫描→取Top5→存 auto_buy.json"""
-    today = date.today().isoformat()
+    now_cn = _now_cn()
+    today = now_cn.date().isoformat()
+    if not _action_in_window("scan_and_buy", now_cn):
+        return _outside_window_response("scan_and_buy", now_cn)
     # 先清缓存，强制重新扫描
     global _cache, _cache_ts
     with _cache_lock:
@@ -818,7 +867,7 @@ def api_actions_scan_and_buy():
         _, snap_sha = gh_read(snap_path)
         gh_write(snap_path, {
             "date": today,
-            "snapshot_time": datetime.now().strftime("%H:%M:%S"),
+            "snapshot_time": now_cn.strftime("%H:%M:%S"),
             "market_win_rate": result.get("market_win_rate"),
             "index_chg": result.get("index_chg"),
             "snapshots": buy_snapshots,
@@ -833,6 +882,10 @@ def api_actions_scan_and_buy():
 @app.route("/api/actions/track-prices", methods=["POST"])
 def api_actions_track_prices():
     """9:30-10:00 每5分钟 GitHub Actions 调用：记录持仓股票当前价格"""
+    now_cn = _now_cn()
+    if not _action_in_window("track_prices", now_cn):
+        return _outside_window_response("track_prices", now_cn)
+
     auto_buy, _ = gh_read("sim_data/auto_buy.json")
     if not auto_buy or not auto_buy.get("positions"):
         return jsonify({"ok": False, "msg": "无持仓"})
@@ -854,8 +907,8 @@ def api_actions_track_prices():
     except Exception as e:
         return jsonify({"ok": False, "msg": str(e)})
 
-    today = auto_buy.get("date", date.today().isoformat())
-    now_time = datetime.now().strftime("%H:%M")
+    today = auto_buy.get("date", now_cn.date().isoformat())
+    now_time = now_cn.strftime("%H:%M")
     path = f"sim_data/intraday/{today}.json"
     intraday, sha = gh_read(path)
     if not intraday:
@@ -868,11 +921,15 @@ def api_actions_track_prices():
 @app.route("/api/actions/sell", methods=["POST"])
 def api_actions_sell():
     """10:01 GitHub Actions 调用：用10:00价格结算，写入 auto_trades.json"""
+    now_cn = _now_cn()
+    if not _action_in_window("sell", now_cn):
+        return _outside_window_response("sell", now_cn)
+
     auto_buy, buy_sha = gh_read("sim_data/auto_buy.json")
     if not auto_buy or not auto_buy.get("positions"):
         return jsonify({"ok": False, "msg": "无持仓"})
 
-    today = date.today().isoformat()
+    today = now_cn.date().isoformat()
     buy_date = auto_buy.get("date", today)
 
     # 取10:00价格（先找 intraday，找不到就实时查）
@@ -937,7 +994,10 @@ def api_actions_sell():
 @app.route("/api/actions/collect-trade-data", methods=["POST"])
 def api_actions_collect_trade_data():
     """15:30 GitHub Actions 调用：收集今日交易的全量数据，存入 GitHub。"""
-    today = date.today().isoformat()
+    now_cn = _now_cn()
+    today = now_cn.date().isoformat()
+    if not _action_in_window("collect_trade_data", now_cn):
+        return _outside_window_response("collect_trade_data", now_cn)
 
     # 读取今日自动交易记录
     auto_trades, _ = gh_read("sim_data/auto_trades.json")
@@ -1035,7 +1095,7 @@ def api_actions_collect_trade_data():
                     "stocks": [r["name"] for r in detail_records]})
 
 
-APP_VERSION = "v10-strategy-buy-time-1450"
+APP_VERSION = "v11-render-cron-market-time-guards"
 
 
 @app.route("/api/version")
