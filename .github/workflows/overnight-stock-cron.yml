@@ -1,0 +1,57 @@
+name: OvernightStock cron
+
+"on":
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Action endpoint to call"
+        required: true
+        default: "collect-trade-data"
+        type: choice
+        options:
+          - scan-and-buy
+          - track-prices
+          - sell
+          - collect-trade-data
+  schedule:
+    # UTC schedules; China market time is UTC+8.
+    - cron: "30-55/5 1 * * 1-5" # 09:30-09:55 track
+    - cron: "0 2 * * 1-5"       # 10:00 track
+    - cron: "1 2 * * 1-5"       # 10:01 sell
+    - cron: "50 6 * * 1-5"      # 14:50 scan and buy
+    - cron: "30 7 * * 1-5"      # 15:30 collect trade details
+
+jobs:
+  call-action:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BASE_URL: https://overnight-stock.onrender.com
+    steps:
+      - name: Resolve action
+        id: action
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            action="${{ inputs.action }}"
+          else
+            case "${{ github.event.schedule }}" in
+              "30-55/5 1 * * 1-5"|"0 2 * * 1-5") action="track-prices" ;;
+              "1 2 * * 1-5") action="sell" ;;
+              "50 6 * * 1-5") action="scan-and-buy" ;;
+              "30 7 * * 1-5") action="collect-trade-data" ;;
+              *) echo "Unknown schedule: ${{ github.event.schedule }}" >&2; exit 2 ;;
+            esac
+          fi
+          echo "action=$action" >> "$GITHUB_OUTPUT"
+
+      - name: Call OvernightStock action
+        shell: bash
+        run: |
+          url="$BASE_URL/api/actions/${{ steps.action.outputs.action }}"
+          echo "POST $url"
+          curl --fail-with-body --show-error --silent --retry 2 \
+            --max-time 120 \
+            --header "Content-Type: application/json" \
+            --request POST \
+            "$url"
