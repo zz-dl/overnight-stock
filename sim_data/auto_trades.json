@@ -179,6 +179,66 @@
       "return_pct": -6.09,
       "industry": "航空装备Ⅱ",
       "est_win_rate": 35
+    },
+    {
+      "code": "603283",
+      "name": "赛腾股份",
+      "buy_date": "2026-06-09",
+      "sell_date": "2026-06-10",
+      "buy_time": "14:50:00",
+      "buy_price": 47.67,
+      "sell_price": 47.43,
+      "return_pct": -0.6,
+      "industry": "自动化设备",
+      "est_win_rate": 45
+    },
+    {
+      "code": "600552",
+      "name": "凯盛科技",
+      "buy_date": "2026-06-09",
+      "sell_date": "2026-06-10",
+      "buy_time": "14:50:00",
+      "buy_price": 22.74,
+      "sell_price": 20.92,
+      "return_pct": -8.1,
+      "industry": "光学光电子",
+      "est_win_rate": 45
+    },
+    {
+      "code": "688239",
+      "name": "航宇科技",
+      "buy_date": "2026-06-09",
+      "sell_date": "2026-06-10",
+      "buy_time": "14:50:00",
+      "buy_price": 54.16,
+      "sell_price": 52.51,
+      "return_pct": -3.15,
+      "industry": "航空装备Ⅱ",
+      "est_win_rate": 45
+    },
+    {
+      "code": "600547",
+      "name": "山东黄金",
+      "buy_date": "2026-06-09",
+      "sell_date": "2026-06-10",
+      "buy_time": "14:50:00",
+      "buy_price": 27.3,
+      "sell_price": 26.57,
+      "return_pct": -2.77,
+      "industry": "贵金属",
+      "est_win_rate": 45
+    },
+    {
+      "code": "600126",
+      "name": "杭钢股份",
+      "buy_date": "2026-06-09",
+      "sell_date": "2026-06-10",
+      "buy_time": "14:50:00",
+      "buy_price": 7.05,
+      "sell_price": 7.15,
+      "return_pct": 1.32,
+      "industry": "普钢",
+      "est_win_rate": 45
     }
   ]
 }

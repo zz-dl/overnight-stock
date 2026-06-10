@@ -120,6 +120,123 @@ class MarketTimeGuardTests(unittest.TestCase):
         self.assertFalse(response.json["ok"])
         self.assertEqual(writes, {})
 
+    def test_tencent_minute_points_parse_market_time_labels(self):
+        class FakeResponse:
+            def json(self):
+                return {
+                    "data": {
+                        "sh600000": {
+                            "data": {
+                                "data": [
+                                    "0930 10.10 100 1010.00",
+                                    "0935 10.20 120 1224.00",
+                                    "1000 10.50 200 2100.00",
+                                ]
+                            }
+                        }
+                    }
+                }
+
+        old_get = app_module._req.get
+        try:
+            app_module._req.get = lambda *args, **kwargs: FakeResponse()
+            points = app_module._fetch_tencent_minute_points(["600000"])
+        finally:
+            app_module._req.get = old_get
+
+        self.assertEqual(points["600000"]["09:30"], 10.10)
+        self.assertEqual(points["600000"]["09:35"], 10.20)
+        self.assertEqual(points["600000"]["10:00"], 10.50)
+
+    def test_collect_trade_data_recovers_previous_day_pending_sell(self):
+        writes = {}
+        auto_buy = {
+            "date": "2026-06-09",
+            "positions": [{
+                "code": "600000",
+                "name": "TEST",
+                "buy_price": 10.0,
+                "industry": "bank",
+                "est_win_rate": 45,
+                "criteria": {"chg": True},
+            }],
+        }
+        snapshot = {
+            "snapshots": {
+                "600000": {
+                    "name": "TEST",
+                    "industry": "bank",
+                    "close": 10.0,
+                    "est_win_rate": 45,
+                    "criteria": {"chg": True},
+                }
+            }
+        }
+
+        def fake_read(path):
+            if path in writes:
+                return writes[path], f"{path}-sha"
+            if path == "sim_data/auto_buy.json":
+                return auto_buy, "auto-buy-sha"
+            if path == "sim_data/auto_trades.json":
+                return {"trades": []}, "auto-trades-sha"
+            if path == "sim_data/buy_snapshots/2026-06-09.json":
+                return snapshot, "snapshot-sha"
+            if path == "sim_data/intraday/2026-06-09.json":
+                return {}, "intraday-sha"
+            if path == "sim_data/trade_details/2026-06-10.json":
+                return None, None
+            return None, None
+
+        def fake_write(path, data, sha, message):
+            writes[path] = data
+            return True
+
+        def fake_minute_points(codes):
+            self.assertEqual(codes, ["600000"])
+            return {
+                "600000": {
+                    "09:30": 10.2,
+                    "09:35": 10.3,
+                    "09:40": 10.4,
+                    "09:45": 10.45,
+                    "09:50": 10.48,
+                    "09:55": 10.49,
+                    "10:00": 10.5,
+                }
+            }
+
+        old_now = app_module._now_cn
+        old_read = app_module.gh_read
+        old_write = app_module.gh_write
+        old_minutes = getattr(app_module, "_fetch_tencent_minute_points", None)
+        try:
+            app_module._now_cn = lambda: cn_dt(15, 30, day=10)
+            app_module.gh_read = fake_read
+            app_module.gh_write = fake_write
+            app_module._fetch_tencent_minute_points = fake_minute_points
+            with app_module.app.test_request_context(method="POST"):
+                response = app_module.api_actions_collect_trade_data()
+        finally:
+            app_module._now_cn = old_now
+            app_module.gh_read = old_read
+            app_module.gh_write = old_write
+            if old_minutes is not None:
+                app_module._fetch_tencent_minute_points = old_minutes
+            elif hasattr(app_module, "_fetch_tencent_minute_points"):
+                delattr(app_module, "_fetch_tencent_minute_points")
+
+        self.assertTrue(response.json["ok"])
+        settled = writes["sim_data/auto_trades.json"]["trades"][0]
+        self.assertEqual(settled["buy_date"], "2026-06-09")
+        self.assertEqual(settled["sell_date"], "2026-06-10")
+        self.assertEqual(settled["sell_price"], 10.5)
+        self.assertEqual(settled["return_pct"], 4.9)
+        self.assertEqual(writes["sim_data/auto_buy.json"], {})
+        self.assertEqual(writes["sim_data/intraday/2026-06-09.json"]["10:00"]["600000"], 10.5)
+        detail = writes["sim_data/trade_details/2026-06-10.json"]["records"][0]
+        self.assertEqual(detail["price_1000"], 10.5)
+
 
 if __name__ == "__main__":
     unittest.main()

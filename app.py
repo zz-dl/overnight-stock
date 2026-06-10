@@ -7,7 +7,7 @@ import re
 import socket
 import threading
 import time
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from math import isnan
 from zoneinfo import ZoneInfo
 
@@ -323,7 +323,7 @@ def _fetch_quote_snapshot(codes: list[str]) -> dict:
     """从腾讯API批量获取完整行情快照（含量比/换手率/振幅/市值等）。
     返回 {code: {features...}}。在买入时点调用即得到该时点的快照。"""
     snap: dict = {}
-    qtcodes = [f"{'sh' if c.startswith('6') else 'sz'}{c}" for c in codes]
+    qtcodes = [_qt_code(c) for c in codes]
     if not qtcodes:
         return snap
     try:
@@ -463,6 +463,159 @@ def _latest_intraday_prices(intraday: dict) -> dict:
     if not times:
         return {}
     return intraday.get(times[-1], {}) or {}
+
+
+_MORNING_PRICE_LABELS = ("09:30", "09:35", "09:40", "09:45", "09:50", "09:55", "10:00")
+
+
+def _qt_code(code: str) -> str:
+    return f"{'sh' if str(code).startswith('6') else 'sz'}{code}"
+
+
+def _minute_label(raw: str) -> str:
+    raw = str(raw).strip()
+    if re.match(r"^\d{4}$", raw):
+        return f"{raw[:2]}:{raw[2:]}"
+    return raw
+
+
+def _previous_weekday(day: date) -> date:
+    prev = day - timedelta(days=1)
+    while prev.weekday() >= 5:
+        prev -= timedelta(days=1)
+    return prev
+
+
+def _fetch_tencent_minute_points(codes: list[str]) -> dict:
+    """Fetch 09:30-10:00 minute prices from Tencent's minute endpoint."""
+    wanted = set(_MORNING_PRICE_LABELS)
+    results: dict = {}
+    for code in codes:
+        qcode = _qt_code(code)
+        points = {}
+        try:
+            r = _req.get(
+                f"https://web.ifzq.gtimg.cn/appstock/app/minute/query?code={qcode}",
+                headers={"User-Agent": "Mozilla/5.0", "Referer": "https://gu.qq.com/"},
+                timeout=10,
+            )
+            payload = r.json()
+            entry = ((payload.get("data") or {}).get(qcode) or {})
+            rows = ((entry.get("data") or {}).get("data") or [])
+            for row in rows:
+                parts = str(row).split()
+                if len(parts) < 2:
+                    continue
+                label = _minute_label(parts[0])
+                if label in wanted:
+                    price = safe_float(parts[1])
+                    if price > 0:
+                        points[label] = price
+        except Exception:
+            points = {}
+        results[code] = points
+    return results
+
+
+def _intraday_from_minute_points(minute_points: dict) -> dict:
+    intraday = {}
+    for label in _MORNING_PRICE_LABELS:
+        price_map = {
+            code: points[label]
+            for code, points in minute_points.items()
+            if isinstance(points, dict) and points.get(label) is not None
+        }
+        if price_map:
+            intraday[label] = price_map
+    return intraday
+
+
+def _recover_missing_sell_from_pending(today: str, auto_buy: dict, auto_trades: dict,
+                                       auto_trades_sha: str | None, auto_buy_sha: str | None) -> dict:
+    if not auto_buy or not auto_buy.get("positions"):
+        return {"ok": False, "msg": "no pending positions"}
+
+    buy_date = auto_buy.get("date")
+    try:
+        today_date = date.fromisoformat(today)
+        buy_day = date.fromisoformat(buy_date)
+    except Exception:
+        return {"ok": False, "msg": f"invalid pending buy date {buy_date!r}"}
+
+    if buy_day != _previous_weekday(today_date):
+        return {"ok": False, "msg": f"stale pending buy date {buy_date}"}
+
+    positions = auto_buy.get("positions", [])
+    codes = [p["code"] for p in positions if p.get("code")]
+    minute_points = _fetch_tencent_minute_points(codes)
+    intraday_patch = _intraday_from_minute_points(minute_points)
+    sell_prices = {
+        code: points.get("10:00")
+        for code, points in minute_points.items()
+        if isinstance(points, dict) and points.get("10:00")
+    }
+    if not sell_prices:
+        return {"ok": False, "msg": "no recoverable 10:00 prices"}
+
+    existing_trades = (auto_trades or {}).get("trades", [])
+    existing_keys = {
+        (t.get("buy_date"), t.get("sell_date"), t.get("code"))
+        for t in existing_trades
+    }
+
+    cost_pct = 0.10
+    settled = []
+    for pos in positions:
+        code = pos.get("code")
+        sell_px = sell_prices.get(code)
+        if not sell_px:
+            continue
+        key = (buy_date, today, code)
+        if key in existing_keys:
+            continue
+        buy_px = safe_float(pos.get("buy_price"))
+        if buy_px <= 0:
+            continue
+        settled.append({
+            "code": code,
+            "name": pos.get("name", code),
+            "buy_date": buy_date,
+            "sell_date": today,
+            "buy_time": STRATEGY_BUY_TIME,
+            "buy_price": round(buy_px, 3),
+            "sell_price": round(sell_px, 3),
+            "return_pct": round((sell_px / buy_px - 1) * 100 - cost_pct, 2),
+            "industry": pos.get("industry", ""),
+            "est_win_rate": pos.get("est_win_rate"),
+        })
+
+    if not settled:
+        return {"ok": False, "msg": "no new trades to recover"}
+
+    intraday_path = f"sim_data/intraday/{buy_date}.json"
+    intraday, intraday_sha = gh_read(intraday_path)
+    intraday = intraday or {}
+    for label, price_map in intraday_patch.items():
+        merged = dict(intraday.get(label) or {})
+        merged.update(price_map)
+        intraday[label] = merged
+    if not gh_write(intraday_path, intraday, intraday_sha, f"auto: recovered prices {buy_date}"):
+        return {"ok": False, "msg": "failed to write recovered intraday prices"}
+
+    updated_auto_trades = {"trades": (existing_trades + settled)[-90:]}
+    if not gh_write("sim_data/auto_trades.json", updated_auto_trades, auto_trades_sha, f"auto: recover sell {today}"):
+        return {"ok": False, "msg": "failed to write recovered auto trades"}
+
+    if not gh_write("sim_data/auto_buy.json", {}, auto_buy_sha, f"auto: clear recovered {today}"):
+        return {"ok": False, "msg": "failed to clear recovered auto buy"}
+
+    return {
+        "ok": True,
+        "msg": f"recovered {len(settled)} trades",
+        "auto_trades": updated_auto_trades,
+        "intraday": {buy_date: intraday},
+        "trades": settled,
+    }
 
 
 # ── 胜率预测（基于十年历史回测数据）──────────────────────────────
@@ -969,7 +1122,7 @@ def api_actions_sell():
     if not sell_prices:
         # 实时查当前价格作为卖出价
         codes = [p["code"] for p in auto_buy["positions"]]
-        qtcodes = [f"{'sh' if c.startswith('6') else 'sz'}{c}" for c in codes]
+        qtcodes = [_qt_code(c) for c in codes]
         try:
             r = _req.get(f"http://qt.gtimg.cn/q={','.join(qtcodes)}", timeout=8)
             for seg in r.text.strip().split(";"):
@@ -983,6 +1136,14 @@ def api_actions_sell():
                         sell_prices[code] = p
         except Exception:
             pass
+
+    if not sell_prices:
+        minute_points = _fetch_tencent_minute_points([p["code"] for p in auto_buy["positions"]])
+        sell_prices = {
+            code: points.get("10:00")
+            for code, points in minute_points.items()
+            if isinstance(points, dict) and points.get("10:00")
+        }
 
     COST_PCT = 0.10
     settled = []
@@ -1010,10 +1171,12 @@ def api_actions_sell():
     if not auto_trades:
         auto_trades = {"trades": []}
     auto_trades["trades"] = (auto_trades["trades"] + settled)[-90:]
-    gh_write("sim_data/auto_trades.json", auto_trades, at_sha, f"auto: sell {today}")
+    if not gh_write("sim_data/auto_trades.json", auto_trades, at_sha, f"auto: sell {today}"):
+        return jsonify({"ok": False, "msg": "failed to write auto_trades"})
 
     # 清空 auto_buy
-    gh_write("sim_data/auto_buy.json", {}, buy_sha, f"auto: clear {today}")
+    if not gh_write("sim_data/auto_buy.json", {}, buy_sha, f"auto: clear {today}"):
+        return jsonify({"ok": False, "msg": "failed to clear auto_buy"})
 
     wins = sum(1 for t in settled if t["return_pct"] > 0)
     avg = round(sum(t["return_pct"] for t in settled) / len(settled), 2)
@@ -1029,15 +1192,24 @@ def api_actions_collect_trade_data():
     if not _action_in_window("collect_trade_data", now_cn):
         return _outside_window_response("collect_trade_data", now_cn)
 
-    # 读取今日自动交易记录
-    auto_trades, _ = gh_read("sim_data/auto_trades.json")
+    # 读取今日自动交易记录；如卖出任务漏跑，后面会尝试从上一交易日 pending 恢复。
+    auto_trades, at_sha = gh_read("sim_data/auto_trades.json")
     if not auto_trades:
-        return jsonify({"ok": False, "msg": "无交易记录"})
+        auto_trades = {"trades": []}
+    auto_buy, buy_sha = gh_read("sim_data/auto_buy.json")
 
     # 只处理今日成交
     today_trades = [t for t in auto_trades.get("trades", []) if t.get("sell_date") == today]
     if not today_trades:
-        return jsonify({"ok": False, "msg": f"今日({today})无成交记录"})
+        recovery = _recover_missing_sell_from_pending(today, auto_buy, auto_trades, at_sha, buy_sha)
+        if recovery.get("ok"):
+            auto_trades = recovery["auto_trades"]
+            today_trades = [t for t in auto_trades.get("trades", []) if t.get("sell_date") == today]
+            recovered_intraday = recovery.get("intraday", {})
+        else:
+            return jsonify({"ok": False, "msg": f"今日({today})无成交记录；{recovery.get('msg')}"})
+    else:
+        recovered_intraday = {}
 
     # ── 读取"买入当日14:50"记录的行情快照（不再于卖出日重新采集，避免用错时点）──
     # today_trades 的 buy_date 可能不同，按 buy_date 缓存读取
@@ -1052,12 +1224,14 @@ def api_actions_collect_trade_data():
     _iday_cache: dict = {}
     def _load_intraday(bdate: str) -> dict:
         if bdate not in _iday_cache:
-            d, _ = gh_read(f"sim_data/intraday/{bdate}.json")
-            _iday_cache[bdate] = d or {}
+            if bdate in recovered_intraday:
+                _iday_cache[bdate] = recovered_intraday[bdate]
+            else:
+                d, _ = gh_read(f"sim_data/intraday/{bdate}.json")
+                _iday_cache[bdate] = d or {}
         return _iday_cache[bdate]
 
     # 读取 auto_buy（卖出后通常已清空；仅作元信息兜底）
-    auto_buy, _ = gh_read("sim_data/auto_buy.json")
     buy_map = {}
     if auto_buy:
         for p in auto_buy.get("positions", []):
@@ -1119,13 +1293,14 @@ def api_actions_collect_trade_data():
     # 存入 GitHub
     path = f"sim_data/trade_details/{today}.json"
     existing, sha = gh_read(path)
-    gh_write(path, {"date": today, "records": detail_records}, sha, f"trade_data: {today}")
+    if not gh_write(path, {"date": today, "records": detail_records}, sha, f"trade_data: {today}"):
+        return jsonify({"ok": False, "msg": "failed to write trade details"})
 
     return jsonify({"ok": True, "date": today, "count": len(detail_records),
                     "stocks": [r["name"] for r in detail_records]})
 
 
-APP_VERSION = "v11-render-cron-market-time-guards"
+APP_VERSION = "v12-recover-missed-sell"
 
 
 @app.route("/api/version")
