@@ -8,12 +8,6 @@ jobs:
   scan-and-buy:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Trigger scan and buy
-        run: |
-          curl -s -X POST \
-            "https://overnight-stock.onrender.com/api/actions/scan-and-buy" \
-            -H "Content-Type: application/json" \
-            --max-time 120 \
-            | tee result.json
-          cat result.json
-          # 如果返回 ok:false 视为警告但不报错
+        run: python3 scripts/render_cron_call.py scan-and-buy

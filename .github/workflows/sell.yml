@@ -8,10 +8,6 @@ jobs:
   sell:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Settle and sell
-        run: |
-          curl -s -X POST \
-            "https://overnight-stock.onrender.com/api/actions/sell" \
-            -H "Content-Type: application/json" \
-            --max-time 60 \
-            | cat
+        run: python3 scripts/render_cron_call.py sell

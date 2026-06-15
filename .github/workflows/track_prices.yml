@@ -14,10 +14,6 @@ jobs:
   track:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Record current prices
-        run: |
-          curl -s -X POST \
-            "https://overnight-stock.onrender.com/api/actions/track-prices" \
-            -H "Content-Type: application/json" \
-            --max-time 30 \
-            | cat
+        run: python3 scripts/render_cron_call.py track-prices

@@ -1300,7 +1300,7 @@ def api_actions_collect_trade_data():
                     "stocks": [r["name"] for r in detail_records]})
 
 
-APP_VERSION = "v12-recover-missed-sell"
+APP_VERSION = "v13-schedule-guard"
 
 
 @app.route("/api/version")

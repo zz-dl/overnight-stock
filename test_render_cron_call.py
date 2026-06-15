@@ -38,6 +38,19 @@ class RenderCronCallTests(unittest.TestCase):
         self.assertIn("no positions", body)
         self.assertEqual(calls[0][0], "https://example.test/api/actions/sell")
 
+    def test_call_action_fails_on_outside_window_response(self):
+        def fake_post(url, headers, timeout):
+            return FakeResponse(200, '{"ok":false,"msg":"outside sell window"}')
+
+        code, body = render_cron_call.call_action(
+            "sell",
+            base_url="https://example.test",
+            post=fake_post,
+        )
+
+        self.assertEqual(code, 1)
+        self.assertIn("outside sell window", body)
+
     def test_call_action_fails_on_http_error(self):
         def fake_post(url, headers, timeout):
             return FakeResponse(500, "server error")

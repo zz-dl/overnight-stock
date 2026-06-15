@@ -8,10 +8,6 @@ jobs:
   collect:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Collect and save trade data
-        run: |
-          curl -s -X POST \
-            "https://overnight-stock.onrender.com/api/actions/collect-trade-data" \
-            -H "Content-Type: application/json" \
-            --max-time 120 \
-            | cat
+        run: python3 scripts/render_cron_call.py collect-trade-data
