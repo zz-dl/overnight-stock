@@ -82,6 +82,49 @@ class MarketTimeGuardTests(unittest.TestCase):
         self.assertIn("09:30", writes["sim_data/intraday/2026-06-08.json"])
         self.assertEqual(writes["sim_data/intraday/2026-06-08.json"]["09:30"]["000001"], 10.5)
 
+    def test_track_prices_rejects_stale_pending_buy_date(self):
+        writes = {}
+        auto_buy = {
+            "date": "2026-06-01",
+            "positions": [{"code": "000001", "name": "TEST", "buy_price": 10.0}],
+        }
+
+        class FakeResponse:
+            text = 'v_sz000001="51~TEST~000001~10.5";'
+
+        def fake_read(path):
+            if path == "sim_data/auto_buy.json":
+                return auto_buy, "auto-buy-sha"
+            if path == "sim_data/intraday/2026-06-01.json":
+                return {}, "intraday-sha"
+            return None, None
+
+        def fake_write(path, data, sha, message):
+            writes[path] = data
+            return True
+
+        old_now = getattr(app_module, "_now_cn", None)
+        old_read = app_module.gh_read
+        old_write = app_module.gh_write
+        old_get = app_module._req.get
+        try:
+            app_module._now_cn = lambda: cn_dt(9, 30, day=10)
+            app_module.gh_read = fake_read
+            app_module.gh_write = fake_write
+            app_module._req.get = lambda *args, **kwargs: FakeResponse()
+            with app_module.app.test_request_context(method="POST"):
+                response = app_module.api_actions_track_prices()
+        finally:
+            if old_now is not None:
+                app_module._now_cn = old_now
+            app_module.gh_read = old_read
+            app_module.gh_write = old_write
+            app_module._req.get = old_get
+
+        self.assertFalse(response.json["ok"])
+        self.assertIn("stale pending buy date", response.json["msg"])
+        self.assertEqual(writes, {})
+
     def test_late_sell_does_not_settle_or_clear_positions(self):
         writes = {}
         auto_buy = {
@@ -118,6 +161,92 @@ class MarketTimeGuardTests(unittest.TestCase):
             app_module.gh_write = old_write
 
         self.assertFalse(response.json["ok"])
+        self.assertEqual(writes, {})
+
+    def test_sell_uses_recorded_1000_intraday_price(self):
+        writes = {}
+        auto_buy = {
+            "date": "2026-06-08",
+            "positions": [{
+                "code": "000001",
+                "name": "TEST",
+                "buy_price": 10.0,
+                "industry": "bank",
+                "est_win_rate": 45,
+            }],
+        }
+
+        def fake_read(path):
+            if path == "sim_data/auto_buy.json":
+                return auto_buy, "auto-buy-sha"
+            if path == "sim_data/intraday/2026-06-08.json":
+                return {"10:00": {"000001": 10.5}}, "intraday-sha"
+            if path == "sim_data/auto_trades.json":
+                return {"trades": []}, "auto-trades-sha"
+            return None, None
+
+        def fake_write(path, data, sha, message):
+            writes[path] = data
+            return True
+
+        old_now = getattr(app_module, "_now_cn", None)
+        old_read = app_module.gh_read
+        old_write = app_module.gh_write
+        try:
+            app_module._now_cn = lambda: cn_dt(10, 1)
+            app_module.gh_read = fake_read
+            app_module.gh_write = fake_write
+            with app_module.app.test_request_context(method="POST"):
+                response = app_module.api_actions_sell()
+        finally:
+            if old_now is not None:
+                app_module._now_cn = old_now
+            app_module.gh_read = old_read
+            app_module.gh_write = old_write
+
+        self.assertTrue(response.json["ok"])
+        trade = writes["sim_data/auto_trades.json"]["trades"][0]
+        self.assertEqual(trade["sell_price"], 10.5)
+        self.assertEqual(trade["return_pct"], 4.9)
+        self.assertEqual(writes["sim_data/auto_buy.json"], {})
+
+    def test_sell_rejects_stale_pending_buy_date(self):
+        writes = {}
+        auto_buy = {
+            "date": "2026-06-01",
+            "positions": [{"code": "000001", "name": "TEST", "buy_price": 10.0}],
+        }
+
+        def fake_read(path):
+            if path == "sim_data/auto_buy.json":
+                return auto_buy, "auto-buy-sha"
+            if path == "sim_data/intraday/2026-06-01.json":
+                return {"10:00": {"000001": 10.5}}, "intraday-sha"
+            if path == "sim_data/auto_trades.json":
+                return {"trades": []}, "auto-trades-sha"
+            return None, None
+
+        def fake_write(path, data, sha, message):
+            writes[path] = data
+            return True
+
+        old_now = getattr(app_module, "_now_cn", None)
+        old_read = app_module.gh_read
+        old_write = app_module.gh_write
+        try:
+            app_module._now_cn = lambda: cn_dt(10, 1, day=10)
+            app_module.gh_read = fake_read
+            app_module.gh_write = fake_write
+            with app_module.app.test_request_context(method="POST"):
+                response = app_module.api_actions_sell()
+        finally:
+            if old_now is not None:
+                app_module._now_cn = old_now
+            app_module.gh_read = old_read
+            app_module.gh_write = old_write
+
+        self.assertFalse(response.json["ok"])
+        self.assertIn("stale pending buy date", response.json["msg"])
         self.assertEqual(writes, {})
 
     def test_tencent_minute_points_parse_market_time_labels(self):

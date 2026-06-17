@@ -486,6 +486,20 @@ def _previous_weekday(day: date) -> date:
     return prev
 
 
+def _pending_buy_date_error(auto_buy: dict, today: str) -> str | None:
+    buy_date = auto_buy.get("date")
+    try:
+        today_date = date.fromisoformat(today)
+        buy_day = date.fromisoformat(buy_date)
+    except Exception:
+        return f"invalid pending buy date {buy_date!r}"
+
+    expected = _previous_weekday(today_date)
+    if buy_day != expected:
+        return f"stale pending buy date {buy_date}; expected {expected.isoformat()}"
+    return None
+
+
 def _fetch_tencent_minute_points(codes: list[str]) -> dict:
     """Fetch 09:30-10:00 minute prices from Tencent's minute endpoint."""
     wanted = set(_MORNING_PRICE_LABELS)
@@ -1073,6 +1087,11 @@ def api_actions_track_prices():
     if not auto_buy or not auto_buy.get("positions"):
         return jsonify({"ok": False, "msg": "无持仓"})
 
+    today = now_cn.date().isoformat()
+    pending_date_error = _pending_buy_date_error(auto_buy, today)
+    if pending_date_error:
+        return jsonify({"ok": False, "msg": pending_date_error, "date": today})
+
     codes = [p["code"] for p in auto_buy["positions"]]
     qtcodes = [f"{'sh' if c.startswith('6') else 'sz'}{c}" for c in codes]
     price_map = {}
@@ -1090,7 +1109,7 @@ def api_actions_track_prices():
     except Exception as e:
         return jsonify({"ok": False, "msg": str(e)})
 
-    today = auto_buy.get("date", now_cn.date().isoformat())
+    today = auto_buy.get("date", today)
     now_time = now_cn.strftime("%H:%M")
     path = f"sim_data/intraday/{today}.json"
     intraday, sha = gh_read(path)
@@ -1114,6 +1133,9 @@ def api_actions_sell():
 
     today = now_cn.date().isoformat()
     buy_date = auto_buy.get("date", today)
+    pending_date_error = _pending_buy_date_error(auto_buy, today)
+    if pending_date_error:
+        return jsonify({"ok": False, "msg": pending_date_error, "date": today})
 
     # 取10:00价格（先找 intraday，找不到就实时查）
     intraday, _ = gh_read(f"sim_data/intraday/{buy_date}.json")
@@ -1300,7 +1322,7 @@ def api_actions_collect_trade_data():
                     "stocks": [r["name"] for r in detail_records]})
 
 
-APP_VERSION = "v13-schedule-guard"
+APP_VERSION = "v14-stale-pending-guard"
 
 
 @app.route("/api/version")
