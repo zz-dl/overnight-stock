@@ -465,6 +465,17 @@ def _latest_intraday_prices(intraday: dict) -> dict:
     return intraday.get(times[-1], {}) or {}
 
 
+def _buy_snapshot_label(snapshot_time: str | None) -> str:
+    """Describe the actual snapshot time without falsely claiming a 14:50 capture."""
+    match = re.match(r"^(\d{2}):(\d{2})(?::\d{2})?$", str(snapshot_time or ""))
+    if not match:
+        return "unknown"
+    hour, minute = (int(value) for value in match.groups())
+    if _hm_value((14, 45)) <= _hm_value((hour, minute)) <= _hm_value((15, 0)):
+        return "buy_1450"
+    return f"buy_{hour:02d}{minute:02d}"
+
+
 _MORNING_PRICE_LABELS = ("09:30", "09:35", "09:40", "09:45", "09:50", "09:55", "10:00")
 
 
@@ -1065,6 +1076,7 @@ def api_actions_scan_and_buy():
         gh_write(snap_path, {
             "date": today,
             "snapshot_time": now_cn.strftime("%H:%M:%S"),
+            "snapshot_timezone": "Asia/Shanghai",
             "market_win_rate": result.get("market_win_rate"),
             "index_chg": result.get("index_chg"),
             "snapshots": buy_snapshots,
@@ -1239,7 +1251,7 @@ def api_actions_collect_trade_data():
     def _load_buy_snap(bdate: str) -> dict:
         if bdate not in _snap_cache:
             s, _ = gh_read(f"sim_data/buy_snapshots/{bdate}.json")
-            _snap_cache[bdate] = (s or {}).get("snapshots", {})
+            _snap_cache[bdate] = s or {}
         return _snap_cache[bdate]
 
     # ── 读取卖出日早盘价格（intraday 文件按 buy_date 命名，结构 {time:{code:price}}）──
@@ -1264,7 +1276,10 @@ def api_actions_collect_trade_data():
     for t in today_trades:
         code = t["code"]
         bdate = t.get("buy_date", today)
-        snap = _load_buy_snap(bdate).get(code, {})
+        snap_doc = _load_buy_snap(bdate)
+        snap = snap_doc.get("snapshots", {}).get(code, {})
+        snapshot_time = snap_doc.get("snapshot_time")
+        snapshot_timezone = snap_doc.get("snapshot_timezone")
         bp = buy_map.get(code, {})
         iday = _load_intraday(bdate)          # {time: {code: price}}
         ipoints = _intraday_price_points(iday, code)
@@ -1279,7 +1294,9 @@ def api_actions_collect_trade_data():
             "sell_price":    t.get("sell_price"),
             "sell_time":     "10:01:00",
             "return_pct":    t.get("return_pct"),
-            "snapshot_at":   "buy_1450",   # 行情快照采集时点：买入当日14:50
+            "snapshot_at":   _buy_snapshot_label(snapshot_time),
+            "snapshot_time": snapshot_time,
+            "snapshot_timezone": snapshot_timezone,
             "open":          snap.get("open"),
             "high":          snap.get("high"),
             "low":           snap.get("low"),
@@ -1322,7 +1339,7 @@ def api_actions_collect_trade_data():
                     "stocks": [r["name"] for r in detail_records]})
 
 
-APP_VERSION = "v14-stale-pending-guard"
+APP_VERSION = "v15-snapshot-provenance"
 
 
 @app.route("/api/version")

@@ -1,6 +1,9 @@
 {
   "date": "2026-06-09",
-  "snapshot_time": "10:25:48",
+  "snapshot_time": "18:25:48",
+  "snapshot_timezone": "Asia/Shanghai",
+  "snapshot_time_original": "10:25:48",
+  "snapshot_time_original_timezone": "UTC",
   "market_win_rate": 42,
   "index_chg": 1.28,
   "snapshots": {

@@ -291,6 +291,8 @@ class MarketTimeGuardTests(unittest.TestCase):
             }],
         }
         snapshot = {
+            "snapshot_time": "10:25:48",
+            "snapshot_timezone": "Asia/Shanghai",
             "snapshots": {
                 "600000": {
                     "name": "TEST",
@@ -365,6 +367,9 @@ class MarketTimeGuardTests(unittest.TestCase):
         self.assertEqual(writes["sim_data/intraday/2026-06-09.json"]["10:00"]["600000"], 10.5)
         detail = writes["sim_data/trade_details/2026-06-10.json"]["records"][0]
         self.assertEqual(detail["price_1000"], 10.5)
+        self.assertEqual(detail["snapshot_time"], "10:25:48")
+        self.assertEqual(detail["snapshot_timezone"], "Asia/Shanghai")
+        self.assertEqual(detail["snapshot_at"], "buy_1025")
 
 
 if __name__ == "__main__":
