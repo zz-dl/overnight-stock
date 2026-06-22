@@ -612,6 +612,7 @@ def _recover_missing_sell_from_pending(today: str, auto_buy: dict, auto_trades: 
             "return_pct": round((sell_px / buy_px - 1) * 100 - cost_pct, 2),
             "industry": pos.get("industry", ""),
             "est_win_rate": pos.get("est_win_rate"),
+            "criteria": pos.get("criteria", {}),
         })
 
     if not settled:
@@ -1195,6 +1196,7 @@ def api_actions_sell():
             "buy_price": round(buy_px, 3), "sell_price": round(sell_px, 3),
             "return_pct": ret, "industry": pos.get("industry", "—"),
             "est_win_rate": pos.get("est_win_rate"),
+            "criteria": pos.get("criteria", {}),
         })
 
     if not settled:
@@ -1286,6 +1288,8 @@ def api_actions_collect_trade_data():
 
         rec = {
             "trade_date":    today,
+            "buy_date":      bdate,
+            "sell_date":     today,
             "code":          code,
             "name":          snap.get("name") or t.get("name", ""),
             "industry":      snap.get("industry") or bp.get("industry", ""),
@@ -1325,7 +1329,7 @@ def api_actions_collect_trade_data():
             "price_0955":    ipoints.get("09:55"),
             "price_1000":    ipoints.get("10:00"),
             "est_win_rate":  snap.get("est_win_rate") if snap.get("est_win_rate") is not None else bp.get("est_win_rate"),
-            "criteria":      str(snap.get("criteria") or bp.get("criteria", {})),
+            "criteria":      snap.get("criteria") or bp.get("criteria", {}),
         }
         detail_records.append(rec)
 
@@ -1339,7 +1343,7 @@ def api_actions_collect_trade_data():
                     "stocks": [r["name"] for r in detail_records]})
 
 
-APP_VERSION = "v15-snapshot-provenance"
+APP_VERSION = "v16-trade-date-provenance"
 
 
 @app.route("/api/version")

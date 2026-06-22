@@ -173,6 +173,7 @@ class MarketTimeGuardTests(unittest.TestCase):
                 "buy_price": 10.0,
                 "industry": "bank",
                 "est_win_rate": 45,
+                "criteria": {"chg": True, "vol_ratio": False},
             }],
         }
 
@@ -208,6 +209,7 @@ class MarketTimeGuardTests(unittest.TestCase):
         trade = writes["sim_data/auto_trades.json"]["trades"][0]
         self.assertEqual(trade["sell_price"], 10.5)
         self.assertEqual(trade["return_pct"], 4.9)
+        self.assertEqual(trade["criteria"], {"chg": True, "vol_ratio": False})
         self.assertEqual(writes["sim_data/auto_buy.json"], {})
 
     def test_sell_rejects_stale_pending_buy_date(self):
@@ -363,9 +365,13 @@ class MarketTimeGuardTests(unittest.TestCase):
         self.assertEqual(settled["sell_date"], "2026-06-10")
         self.assertEqual(settled["sell_price"], 10.5)
         self.assertEqual(settled["return_pct"], 4.9)
+        self.assertEqual(settled["criteria"], {"chg": True})
         self.assertEqual(writes["sim_data/auto_buy.json"], {})
         self.assertEqual(writes["sim_data/intraday/2026-06-09.json"]["10:00"]["600000"], 10.5)
         detail = writes["sim_data/trade_details/2026-06-10.json"]["records"][0]
+        self.assertEqual(detail["buy_date"], "2026-06-09")
+        self.assertEqual(detail["sell_date"], "2026-06-10")
+        self.assertEqual(detail["criteria"], {"chg": True})
         self.assertEqual(detail["price_1000"], 10.5)
         self.assertEqual(detail["snapshot_time"], "10:25:48")
         self.assertEqual(detail["snapshot_timezone"], "Asia/Shanghai")
