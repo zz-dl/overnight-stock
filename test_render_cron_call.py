@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime, timedelta, timezone
 
 from scripts import render_cron_call
 
@@ -63,6 +64,79 @@ class RenderCronCallTests(unittest.TestCase):
 
         self.assertEqual(code, 1)
         self.assertIn("server error", body)
+
+    def test_wait_and_call_sleeps_until_target_market_time(self):
+        sleeps = []
+        calls = []
+        now = datetime(2026, 6, 24, 14, 40, tzinfo=timezone(timedelta(hours=8)))
+
+        def fake_call(action, base_url=None):
+            calls.append((action, base_url))
+            return 0, '{"ok":true}'
+
+        code, body = render_cron_call.wait_and_call(
+            "scan-and-buy",
+            "14:50",
+            "15:00",
+            base_url="https://example.test",
+            now=lambda: now,
+            sleep=sleeps.append,
+            call=fake_call,
+        )
+
+        self.assertEqual(code, 0)
+        self.assertEqual(body, '{"ok":true}')
+        self.assertEqual(sleeps, [600])
+        self.assertEqual(calls, [("scan-and-buy", "https://example.test")])
+
+    def test_wait_and_call_fails_after_deadline_without_calling(self):
+        calls = []
+        now = datetime(2026, 6, 24, 15, 1, tzinfo=timezone(timedelta(hours=8)))
+
+        code, body = render_cron_call.wait_and_call(
+            "scan-and-buy",
+            "14:50",
+            "15:00",
+            now=lambda: now,
+            sleep=lambda seconds: None,
+            call=lambda action, base_url=None: calls.append(action),
+        )
+
+        self.assertEqual(code, 1)
+        self.assertIn("missed scan-and-buy window", body)
+        self.assertEqual(calls, [])
+
+    def test_track_price_session_waits_and_calls_each_label(self):
+        class FakeClock:
+            def __init__(self):
+                self.current = datetime(2026, 6, 24, 9, 29, tzinfo=timezone(timedelta(hours=8)))
+                self.sleeps = []
+
+            def now(self):
+                return self.current
+
+            def sleep(self, seconds):
+                self.sleeps.append(seconds)
+                self.current += timedelta(seconds=seconds)
+
+        clock = FakeClock()
+        calls = []
+
+        def fake_call(action, base_url=None):
+            calls.append((action, clock.now().strftime("%H:%M")))
+            return 0, '{"ok":false,"msg":"no positions"}'
+
+        code, body = render_cron_call.track_price_session(
+            labels=("09:30", "09:35"),
+            now=clock.now,
+            sleep=clock.sleep,
+            call=fake_call,
+        )
+
+        self.assertEqual(code, 0)
+        self.assertEqual(body, "track session complete")
+        self.assertEqual(clock.sleeps, [60, 300])
+        self.assertEqual(calls, [("track-prices", "09:30"), ("track-prices", "09:35")])
 
 
 if __name__ == "__main__":

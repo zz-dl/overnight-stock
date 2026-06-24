@@ -1343,7 +1343,7 @@ def api_actions_collect_trade_data():
                     "stocks": [r["name"] for r in detail_records]})
 
 
-APP_VERSION = "v16-trade-date-provenance"
+APP_VERSION = "v17-schedule-wait"
 
 
 @app.route("/api/version")

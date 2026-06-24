@@ -1,13 +1,14 @@
 name: 10:01 Sell
 on:
   schedule:
-    - cron: '1 2 * * 1-5'    # 周一至周五 02:01 UTC = 10:01 CST
+    - cron: '45 20 * * 0-4'  # Start 04:45 CST, then wait for 10:01 CST
   workflow_dispatch:
 
 jobs:
   sell:
     runs-on: ubuntu-latest
+    timeout-minutes: 340
     steps:
       - uses: actions/checkout@v4
       - name: Settle and sell
-        run: python3 scripts/render_cron_call.py sell
+        run: python3 scripts/render_cron_call.py wait-and-call sell 10:01 10:10

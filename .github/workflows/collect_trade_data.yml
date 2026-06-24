@@ -1,13 +1,14 @@
 name: 15:30 Collect Trade Data
 on:
   schedule:
-    - cron: '30 7 * * 1-5'   # 周一至周五 07:30 UTC = 15:30 CST
+    - cron: '0 7 * * 1-5'    # Start 15:00 CST, then wait for 15:30 CST
   workflow_dispatch:
 
 jobs:
   collect:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - name: Collect and save trade data
-        run: python3 scripts/render_cron_call.py collect-trade-data
+        run: python3 scripts/render_cron_call.py wait-and-call collect-trade-data 15:30 23:59

@@ -1,19 +1,14 @@
 name: 9:30-10:00 Track Prices
 on:
   schedule:
-    - cron: '30 1 * * 1-5'   # 09:30 CST
-    - cron: '35 1 * * 1-5'   # 09:35 CST
-    - cron: '40 1 * * 1-5'   # 09:40 CST
-    - cron: '45 1 * * 1-5'   # 09:45 CST
-    - cron: '50 1 * * 1-5'   # 09:50 CST
-    - cron: '55 1 * * 1-5'   # 09:55 CST
-    - cron: '0 2 * * 1-5'    # 10:00 CST
+    - cron: '45 20 * * 0-4'  # Start 04:45 CST, then wait through 09:30-10:00 CST
   workflow_dispatch:
 
 jobs:
   track:
     runs-on: ubuntu-latest
+    timeout-minutes: 340
     steps:
       - uses: actions/checkout@v4
-      - name: Record current prices
-        run: python3 scripts/render_cron_call.py track-prices
+      - name: Record market-session prices
+        run: python3 scripts/render_cron_call.py track-session

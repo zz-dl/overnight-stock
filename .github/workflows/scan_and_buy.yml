@@ -1,13 +1,14 @@
 name: 14:50 Scan and Buy
 on:
   schedule:
-    - cron: '50 6 * * 1-5'   # 周一至周五 06:50 UTC = 14:50 CST
-  workflow_dispatch:           # 支持手动触发
+    - cron: '30 1 * * 1-5'   # Start 09:30 CST, then wait for 14:50 CST
+  workflow_dispatch:
 
 jobs:
   scan-and-buy:
     runs-on: ubuntu-latest
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - name: Trigger scan and buy
-        run: python3 scripts/render_cron_call.py scan-and-buy
+        run: python3 scripts/render_cron_call.py wait-and-call scan-and-buy 14:50 15:00
