@@ -42,7 +42,16 @@
       "price_0955": 47.66,
       "price_1000": 47.43,
       "est_win_rate": 45,
-      "criteria": "{'chg': True, 'turnover': True, 'vol_ratio': False, 'cap': True, 'vwap': True, 'stronger': True}"
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": false,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "buy_date": "2026-06-09",
+      "sell_date": "2026-06-10"
     },
     {
       "trade_date": "2026-06-10",
@@ -85,7 +94,16 @@
       "price_0955": 21.03,
       "price_1000": 20.92,
       "est_win_rate": 45,
-      "criteria": "{'chg': True, 'turnover': False, 'vol_ratio': True, 'cap': False, 'vwap': True, 'stronger': True}"
+      "criteria": {
+        "chg": true,
+        "turnover": false,
+        "vol_ratio": true,
+        "cap": false,
+        "vwap": true,
+        "stronger": true
+      },
+      "buy_date": "2026-06-09",
+      "sell_date": "2026-06-10"
     },
     {
       "trade_date": "2026-06-10",
@@ -128,7 +146,16 @@
       "price_0955": 52.75,
       "price_1000": 52.51,
       "est_win_rate": 45,
-      "criteria": "{'chg': True, 'turnover': False, 'vol_ratio': True, 'cap': False, 'vwap': True, 'stronger': True}"
+      "criteria": {
+        "chg": true,
+        "turnover": false,
+        "vol_ratio": true,
+        "cap": false,
+        "vwap": true,
+        "stronger": true
+      },
+      "buy_date": "2026-06-09",
+      "sell_date": "2026-06-10"
     },
     {
       "trade_date": "2026-06-10",
@@ -171,7 +198,16 @@
       "price_0955": 26.54,
       "price_1000": 26.57,
       "est_win_rate": 45,
-      "criteria": "{'chg': True, 'turnover': False, 'vol_ratio': True, 'cap': False, 'vwap': True, 'stronger': True}"
+      "criteria": {
+        "chg": true,
+        "turnover": false,
+        "vol_ratio": true,
+        "cap": false,
+        "vwap": true,
+        "stronger": true
+      },
+      "buy_date": "2026-06-09",
+      "sell_date": "2026-06-10"
     },
     {
       "trade_date": "2026-06-10",
@@ -214,7 +250,16 @@
       "price_0955": 7.15,
       "price_1000": 7.15,
       "est_win_rate": 45,
-      "criteria": "{'chg': True, 'turnover': False, 'vol_ratio': True, 'cap': False, 'vwap': True, 'stronger': True}"
+      "criteria": {
+        "chg": true,
+        "turnover": false,
+        "vol_ratio": true,
+        "cap": false,
+        "vwap": true,
+        "stronger": true
+      },
+      "buy_date": "2026-06-09",
+      "sell_date": "2026-06-10"
     }
   ]
 }

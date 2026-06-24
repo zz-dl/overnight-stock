@@ -42,7 +42,9 @@
       "price_0955": null,
       "price_1000": null,
       "est_win_rate": null,
-      "criteria": "{}"
+      "criteria": {},
+      "buy_date": "2026-06-05",
+      "sell_date": "2026-06-08"
     },
     {
       "trade_date": "2026-06-08",
@@ -85,7 +87,9 @@
       "price_0955": null,
       "price_1000": null,
       "est_win_rate": null,
-      "criteria": "{}"
+      "criteria": {},
+      "buy_date": "2026-06-05",
+      "sell_date": "2026-06-08"
     },
     {
       "trade_date": "2026-06-08",
@@ -128,7 +132,9 @@
       "price_0955": null,
       "price_1000": null,
       "est_win_rate": null,
-      "criteria": "{}"
+      "criteria": {},
+      "buy_date": "2026-06-05",
+      "sell_date": "2026-06-08"
     },
     {
       "trade_date": "2026-06-08",
@@ -171,7 +177,9 @@
       "price_0955": null,
       "price_1000": null,
       "est_win_rate": null,
-      "criteria": "{}"
+      "criteria": {},
+      "buy_date": "2026-06-05",
+      "sell_date": "2026-06-08"
     },
     {
       "trade_date": "2026-06-08",
@@ -214,7 +222,9 @@
       "price_0955": null,
       "price_1000": null,
       "est_win_rate": null,
-      "criteria": "{}"
+      "criteria": {},
+      "buy_date": "2026-06-05",
+      "sell_date": "2026-06-08"
     }
   ]
 }

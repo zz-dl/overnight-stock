@@ -86,6 +86,8 @@ check(
 )
 
 bad_trade_details = []
+bad_trade_detail_dates = []
+bad_trade_detail_criteria = []
 for path in sorted((ROOT / "sim_data" / "trade_details").glob("*.json")):
     data = read_json(path)
     for record in data.get("records", []):
@@ -93,11 +95,31 @@ for path in sorted((ROOT / "sim_data" / "trade_details").glob("*.json")):
             bad_trade_details.append(
                 f"{path.name} {record.get('code')} buy_time={record.get('buy_time')!r}"
             )
+        if not record.get("buy_date") or not record.get("sell_date"):
+            bad_trade_detail_dates.append(
+                f"{path.name} {record.get('code')} buy_date={record.get('buy_date')!r} sell_date={record.get('sell_date')!r}"
+            )
+        if not isinstance(record.get("criteria"), dict):
+            bad_trade_detail_criteria.append(
+                f"{path.name} {record.get('code')} criteria_type={type(record.get('criteria')).__name__}"
+            )
 
 check(
     "trade details use strategy buy time",
     not bad_trade_details,
     "; ".join(bad_trade_details[:8]),
+)
+
+check(
+    "trade details include explicit buy/sell dates",
+    not bad_trade_detail_dates,
+    "; ".join(bad_trade_detail_dates[:8]),
+)
+
+check(
+    "trade details keep criteria as JSON objects",
+    not bad_trade_detail_criteria,
+    "; ".join(bad_trade_detail_criteria[:8]),
 )
 
 print("ALL TESTS PASSED")
