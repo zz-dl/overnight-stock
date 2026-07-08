@@ -377,6 +377,44 @@ class MarketTimeGuardTests(unittest.TestCase):
         self.assertEqual(detail["snapshot_timezone"], "Asia/Shanghai")
         self.assertEqual(detail["snapshot_at"], "buy_1025")
 
+    def test_collect_trade_data_writes_empty_audit_when_no_positions(self):
+        writes = {}
+
+        def fake_read(path):
+            if path == "sim_data/auto_trades.json":
+                return {"trades": []}, "auto-trades-sha"
+            if path == "sim_data/auto_buy.json":
+                return {}, "auto-buy-sha"
+            if path == "sim_data/trade_details/2026-06-10.json":
+                return None, None
+            return None, None
+
+        def fake_write(path, data, sha, message):
+            writes[path] = data
+            return True
+
+        old_now = app_module._now_cn
+        old_read = app_module.gh_read
+        old_write = app_module.gh_write
+        try:
+            app_module._now_cn = lambda: cn_dt(15, 30, day=10)
+            app_module.gh_read = fake_read
+            app_module.gh_write = fake_write
+            with app_module.app.test_request_context(method="POST"):
+                response = app_module.api_actions_collect_trade_data()
+        finally:
+            app_module._now_cn = old_now
+            app_module.gh_read = old_read
+            app_module.gh_write = old_write
+
+        self.assertTrue(response.json["ok"])
+        self.assertEqual(response.json["status"], "no_trades")
+        self.assertEqual(response.json["count"], 0)
+        detail = writes["sim_data/trade_details/2026-06-10.json"]
+        self.assertEqual(detail["status"], "no_trades")
+        self.assertEqual(detail["reason"], "no pending positions")
+        self.assertEqual(detail["records"], [])
+
 
 if __name__ == "__main__":
     unittest.main()

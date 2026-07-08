@@ -129,6 +129,58 @@ def build_signal_snapshot_records(today: str, stocks: list[dict], result: dict |
     return records
 
 
+def _nullable_float(value):
+    if value is None:
+        return None
+    try:
+        parsed = float(value)
+    except Exception:
+        return None
+    return None if isnan(parsed) else parsed
+
+
+def _nullable_int(value):
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except Exception:
+        return None
+
+
+def _no_buy_reason(result: dict | None) -> str:
+    result = result or {}
+    for key in ("market_condition", "error", "msg"):
+        value = result.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return "no candidates"
+
+
+def build_signal_snapshot_doc(today: str, stocks: list[dict], result: dict | None = None) -> dict:
+    """Build a persisted snapshot with diagnostics even when the buy list is empty."""
+    result = result or {}
+    records = build_signal_snapshot_records(today, stocks, result)
+    doc = {
+        "date": today,
+        "source_app": "overnight_stock",
+        "strategy": "overnight_top5_1450",
+        "snapshot_time": STRATEGY_BUY_TIME,
+        "scan_time": result.get("scan_time"),
+        "index_chg": _nullable_float(result.get("index_chg")),
+        "market_win_rate": _nullable_int(result.get("market_win_rate")),
+        "market_condition": result.get("market_condition"),
+        "above_ma250": result.get("above_ma250"),
+        "total_scanned": _nullable_int(result.get("total_scanned")),
+        "total_found": _nullable_int(result.get("total_found")),
+        "active_criteria": result.get("active_criteria", []),
+        "records": records,
+    }
+    if not records:
+        doc["no_buy_reason"] = _no_buy_reason(result)
+    return doc
+
+
 # ── 上证指数涨跌幅 ─────────────────────────────────────────────
 def get_index_chg() -> float:
     try:
@@ -644,6 +696,19 @@ def _recover_missing_sell_from_pending(today: str, auto_buy: dict, auto_trades: 
     }
 
 
+def _write_empty_trade_details(today: str, reason: str, now_cn: datetime) -> bool:
+    path = f"sim_data/trade_details/{today}.json"
+    existing, sha = gh_read(path)
+    detail = {
+        "date": today,
+        "status": "no_trades",
+        "reason": reason,
+        "market_time": now_cn.strftime("%H:%M:%S"),
+        "records": [],
+    }
+    return gh_write(path, detail, sha, f"trade_data: no trades {today}")
+
+
 # ── 胜率预测（基于十年历史回测数据）──────────────────────────────
 _IC_BASE = {(0.5, 1.0): 54, (1.0, 2.0): 43, (2.0, 99): 47, (0.0, 0.5): 38}
 _WEEKDAY_BONUS = {0: 1, 1: -1, 2: 0, 3: 0, 4: 2}
@@ -1022,13 +1087,18 @@ def api_actions_scan_and_buy():
         gh_write("sim_data/auto_buy.json", {}, sha, f"auto: no buy {today}")
         snapshot_path = f"sim_data/signal_snapshots/{today}.json"
         _, snapshot_sha = gh_read(snapshot_path)
-        gh_write(snapshot_path, {
+        signal_snapshot = build_signal_snapshot_doc(today, stocks, result)
+        gh_write(snapshot_path, signal_snapshot, snapshot_sha, f"signal snapshot empty {today}")
+        return jsonify({
+            "ok": False,
+            "msg": "无候选股（年线下方或无满足条件股票）",
             "date": today,
-            "source_app": "overnight_stock",
-            "strategy": "overnight_top5_1450",
-            "records": [],
-        }, snapshot_sha, f"signal snapshot empty {today}")
-        return jsonify({"ok": False, "msg": "无候选股（年线下方或无满足条件股票）", "date": today})
+            "reason": signal_snapshot.get("no_buy_reason"),
+            "index_chg": signal_snapshot.get("index_chg"),
+            "market_condition": signal_snapshot.get("market_condition"),
+            "total_scanned": signal_snapshot.get("total_scanned"),
+            "total_found": signal_snapshot.get("total_found"),
+        })
 
     auto_buy = {
         "date": today,
@@ -1045,12 +1115,7 @@ def api_actions_scan_and_buy():
     _, sha = gh_read("sim_data/auto_buy.json")
     gh_write("sim_data/auto_buy.json", auto_buy, sha, f"auto: buy {today}")
 
-    signal_snapshot = {
-        "date": today,
-        "source_app": "overnight_stock",
-        "strategy": "overnight_top5_1450",
-        "records": build_signal_snapshot_records(today, stocks, result),
-    }
+    signal_snapshot = build_signal_snapshot_doc(today, stocks, result)
     snapshot_path = f"sim_data/signal_snapshots/{today}.json"
     _, snapshot_sha = gh_read(snapshot_path)
     gh_write(snapshot_path, signal_snapshot, snapshot_sha, f"signal snapshot {today}")
@@ -1243,7 +1308,19 @@ def api_actions_collect_trade_data():
             today_trades = [t for t in auto_trades.get("trades", []) if t.get("sell_date") == today]
             recovered_intraday = recovery.get("intraday", {})
         else:
-            return jsonify({"ok": False, "msg": f"今日({today})无成交记录；{recovery.get('msg')}"})
+            reason = recovery.get("msg", "no trades")
+            if reason == "no pending positions":
+                if not _write_empty_trade_details(today, reason, now_cn):
+                    return jsonify({"ok": False, "msg": "failed to write empty trade details"})
+                return jsonify({
+                    "ok": True,
+                    "date": today,
+                    "count": 0,
+                    "status": "no_trades",
+                    "reason": reason,
+                    "stocks": [],
+                })
+            return jsonify({"ok": False, "msg": f"今日({today})无成交记录；{reason}"})
     else:
         recovered_intraday = {}
 
@@ -1343,7 +1420,7 @@ def api_actions_collect_trade_data():
                     "stocks": [r["name"] for r in detail_records]})
 
 
-APP_VERSION = "v17-schedule-wait"
+APP_VERSION = "v18-empty-day-audit"
 
 
 @app.route("/api/version")
