@@ -619,6 +619,9 @@ def _recover_missing_sell_from_pending(today: str, auto_buy: dict, auto_trades: 
     except Exception:
         return {"ok": False, "msg": f"invalid pending buy date {buy_date!r}"}
 
+    if buy_day == today_date:
+        return {"ok": False, "msg": "pending positions are for next trading day"}
+
     if buy_day != _previous_weekday(today_date):
         return {"ok": False, "msg": f"stale pending buy date {buy_date}"}
 
@@ -696,12 +699,12 @@ def _recover_missing_sell_from_pending(today: str, auto_buy: dict, auto_trades: 
     }
 
 
-def _write_empty_trade_details(today: str, reason: str, now_cn: datetime) -> bool:
+def _write_empty_trade_details(today: str, reason: str, now_cn: datetime, status: str = "no_trades") -> bool:
     path = f"sim_data/trade_details/{today}.json"
     existing, sha = gh_read(path)
     detail = {
         "date": today,
-        "status": "no_trades",
+        "status": status,
         "reason": reason,
         "market_time": now_cn.strftime("%H:%M:%S"),
         "records": [],
@@ -1309,14 +1312,19 @@ def api_actions_collect_trade_data():
             recovered_intraday = recovery.get("intraday", {})
         else:
             reason = recovery.get("msg", "no trades")
-            if reason == "no pending positions":
-                if not _write_empty_trade_details(today, reason, now_cn):
+            empty_statuses = {
+                "no pending positions": "no_trades",
+                "pending positions are for next trading day": "pending_next_sell",
+            }
+            if reason in empty_statuses:
+                status = empty_statuses[reason]
+                if not _write_empty_trade_details(today, reason, now_cn, status=status):
                     return jsonify({"ok": False, "msg": "failed to write empty trade details"})
                 return jsonify({
                     "ok": True,
                     "date": today,
                     "count": 0,
-                    "status": "no_trades",
+                    "status": status,
                     "reason": reason,
                     "stocks": [],
                 })
@@ -1420,7 +1428,7 @@ def api_actions_collect_trade_data():
                     "stocks": [r["name"] for r in detail_records]})
 
 
-APP_VERSION = "v18-empty-day-audit"
+APP_VERSION = "v19-pending-next-sell-audit"
 
 
 @app.route("/api/version")

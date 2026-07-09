@@ -415,6 +415,62 @@ class MarketTimeGuardTests(unittest.TestCase):
         self.assertEqual(detail["reason"], "no pending positions")
         self.assertEqual(detail["records"], [])
 
+    def test_collect_trade_data_preserves_same_day_pending_buy(self):
+        writes = {}
+        auto_buy = {
+            "date": "2026-06-10",
+            "positions": [{
+                "code": "600000",
+                "name": "TEST",
+                "buy_price": 10.0,
+            }],
+        }
+
+        def fake_read(path):
+            if path == "sim_data/auto_trades.json":
+                return {"trades": []}, "auto-trades-sha"
+            if path == "sim_data/auto_buy.json":
+                return auto_buy, "auto-buy-sha"
+            if path == "sim_data/trade_details/2026-06-10.json":
+                return None, None
+            return None, None
+
+        def fake_write(path, data, sha, message):
+            writes[path] = data
+            return True
+
+        def fail_minute_fetch(codes):
+            raise AssertionError("same-day pending buy should not be recovered as a missed sell")
+
+        old_now = app_module._now_cn
+        old_read = app_module.gh_read
+        old_write = app_module.gh_write
+        old_minutes = getattr(app_module, "_fetch_tencent_minute_points", None)
+        try:
+            app_module._now_cn = lambda: cn_dt(15, 30, day=10)
+            app_module.gh_read = fake_read
+            app_module.gh_write = fake_write
+            app_module._fetch_tencent_minute_points = fail_minute_fetch
+            with app_module.app.test_request_context(method="POST"):
+                response = app_module.api_actions_collect_trade_data()
+        finally:
+            app_module._now_cn = old_now
+            app_module.gh_read = old_read
+            app_module.gh_write = old_write
+            if old_minutes is not None:
+                app_module._fetch_tencent_minute_points = old_minutes
+            elif hasattr(app_module, "_fetch_tencent_minute_points"):
+                delattr(app_module, "_fetch_tencent_minute_points")
+
+        self.assertTrue(response.json["ok"])
+        self.assertEqual(response.json["status"], "pending_next_sell")
+        self.assertEqual(response.json["count"], 0)
+        detail = writes["sim_data/trade_details/2026-06-10.json"]
+        self.assertEqual(detail["status"], "pending_next_sell")
+        self.assertEqual(detail["reason"], "pending positions are for next trading day")
+        self.assertEqual(detail["records"], [])
+        self.assertNotIn("sim_data/auto_buy.json", writes)
+
 
 if __name__ == "__main__":
     unittest.main()
