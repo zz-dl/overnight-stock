@@ -1,0 +1,378 @@
+{
+  "date": "2026-07-09",
+  "source_app": "overnight_stock",
+  "strategy": "overnight_top5_1450",
+  "snapshot_time": "14:50:00",
+  "scan_time": "14:50:39",
+  "index_chg": 1.69,
+  "market_win_rate": 43,
+  "market_condition": "大盘+1.69%，涨幅较强，历史胜率尚可",
+  "above_ma250": true,
+  "total_scanned": 192,
+  "total_found": 27,
+  "active_criteria": [
+    "cap",
+    "chg",
+    "stronger",
+    "turnover",
+    "vol_ratio",
+    "vwap"
+  ],
+  "records": [
+    {
+      "source_app": "overnight_stock",
+      "strategy": "overnight_top5_1450",
+      "snapshot_date": "2026-07-09",
+      "snapshot_time": "14:50:00",
+      "sequence": 1,
+      "code": "600345",
+      "name": "长江通信",
+      "market": "A",
+      "industry": "通信设备",
+      "rank": 1,
+      "score": 46,
+      "recommendation": "buy",
+      "signal_action": "buy_top5",
+      "price": 59.28,
+      "open": null,
+      "close": null,
+      "chg_pct": 3.64,
+      "vol_ratio": 1.31,
+      "turnover": 7.17,
+      "capital_net": null,
+      "market_state": {
+        "market_win_rate": 43,
+        "index_chg": 1.69
+      },
+      "weights": {},
+      "factors": {
+        "criteria": {
+          "chg": true,
+          "turnover": true,
+          "vol_ratio": true,
+          "cap": true,
+          "vwap": true,
+          "stronger": true
+        }
+      },
+      "news": [],
+      "raw": {
+        "code": "600345",
+        "name": "长江通信",
+        "price": 59.28,
+        "chg_pct": 3.64,
+        "turnover": 7.17,
+        "vol_ratio": 1.31,
+        "float_cap": 125.4,
+        "vwap": 0.006,
+        "mkt_code": 1,
+        "criteria": {
+          "chg": true,
+          "turnover": true,
+          "vol_ratio": true,
+          "cap": true,
+          "vwap": true,
+          "stronger": true
+        },
+        "score": 6,
+        "industry": "通信设备",
+        "est_win_rate": 46,
+        "reasons": [
+          "涨幅 3.6%，处于 3-5% 甜蜜区间，动能适中",
+          "超额大盘 2.2x，独立行情且未过热（历史最优区间）",
+          "大盘今日 +1.69%，历史同类条件胜率约 43%"
+        ]
+      },
+      "forward_returns": {
+        "next_open_pct": null,
+        "next_close_pct": null,
+        "return_5d_pct": null,
+        "return_20d_pct": null
+      }
+    },
+    {
+      "source_app": "overnight_stock",
+      "strategy": "overnight_top5_1450",
+      "snapshot_date": "2026-07-09",
+      "snapshot_time": "14:50:00",
+      "sequence": 2,
+      "code": "601199",
+      "name": "江南水务",
+      "market": "A",
+      "industry": "环境治理",
+      "rank": 2,
+      "score": 46,
+      "recommendation": "buy",
+      "signal_action": "buy_top5",
+      "price": 6.03,
+      "open": null,
+      "close": null,
+      "chg_pct": 3.79,
+      "vol_ratio": 1.89,
+      "turnover": 3.04,
+      "capital_net": null,
+      "market_state": {
+        "market_win_rate": 43,
+        "index_chg": 1.69
+      },
+      "weights": {},
+      "factors": {
+        "criteria": {
+          "chg": true,
+          "turnover": false,
+          "vol_ratio": true,
+          "cap": true,
+          "vwap": true,
+          "stronger": true
+        }
+      },
+      "news": [],
+      "raw": {
+        "code": "601199",
+        "name": "江南水务",
+        "price": 6.03,
+        "chg_pct": 3.79,
+        "turnover": 3.04,
+        "vol_ratio": 1.89,
+        "float_cap": 56.4,
+        "vwap": 0.001,
+        "mkt_code": 1,
+        "criteria": {
+          "chg": true,
+          "turnover": false,
+          "vol_ratio": true,
+          "cap": true,
+          "vwap": true,
+          "stronger": true
+        },
+        "score": 5,
+        "industry": "环境治理",
+        "est_win_rate": 46,
+        "reasons": [
+          "涨幅 3.8%，处于 3-5% 甜蜜区间，动能适中",
+          "超额大盘 2.2x，独立行情且未过热（历史最优区间）",
+          "大盘今日 +1.69%，历史同类条件胜率约 43%"
+        ]
+      },
+      "forward_returns": {
+        "next_open_pct": null,
+        "next_close_pct": null,
+        "return_5d_pct": null,
+        "return_20d_pct": null
+      }
+    },
+    {
+      "source_app": "overnight_stock",
+      "strategy": "overnight_top5_1450",
+      "snapshot_date": "2026-07-09",
+      "snapshot_time": "14:50:00",
+      "sequence": 3,
+      "code": "601162",
+      "name": "天风证券",
+      "market": "A",
+      "industry": "证券Ⅱ",
+      "rank": 3,
+      "score": 46,
+      "recommendation": "buy",
+      "signal_action": "buy_top5",
+      "price": 3.79,
+      "open": null,
+      "close": null,
+      "chg_pct": 4.12,
+      "vol_ratio": 1.26,
+      "turnover": 4.87,
+      "capital_net": null,
+      "market_state": {
+        "market_win_rate": 43,
+        "index_chg": 1.69
+      },
+      "weights": {},
+      "factors": {
+        "criteria": {
+          "chg": true,
+          "turnover": false,
+          "vol_ratio": true,
+          "cap": false,
+          "vwap": true,
+          "stronger": true
+        }
+      },
+      "news": [],
+      "raw": {
+        "code": "601162",
+        "name": "天风证券",
+        "price": 3.79,
+        "chg_pct": 4.12,
+        "turnover": 4.87,
+        "vol_ratio": 1.26,
+        "float_cap": 325.7,
+        "vwap": 0.0,
+        "mkt_code": 1,
+        "criteria": {
+          "chg": true,
+          "turnover": false,
+          "vol_ratio": true,
+          "cap": false,
+          "vwap": true,
+          "stronger": true
+        },
+        "score": 4,
+        "industry": "证券Ⅱ",
+        "est_win_rate": 46,
+        "reasons": [
+          "涨幅 4.1%，处于 3-5% 甜蜜区间，动能适中",
+          "超额大盘 2.4x，独立行情且未过热（历史最优区间）",
+          "大盘今日 +1.69%，历史同类条件胜率约 43%"
+        ]
+      },
+      "forward_returns": {
+        "next_open_pct": null,
+        "next_close_pct": null,
+        "return_5d_pct": null,
+        "return_20d_pct": null
+      }
+    },
+    {
+      "source_app": "overnight_stock",
+      "strategy": "overnight_top5_1450",
+      "snapshot_date": "2026-07-09",
+      "snapshot_time": "14:50:00",
+      "sequence": 4,
+      "code": "688211",
+      "name": "中科微至",
+      "market": "A",
+      "industry": "专用设备",
+      "rank": 4,
+      "score": 46,
+      "recommendation": "buy",
+      "signal_action": "buy_top5",
+      "price": 35.35,
+      "open": null,
+      "close": null,
+      "chg_pct": 3.97,
+      "vol_ratio": 1.11,
+      "turnover": 1.21,
+      "capital_net": null,
+      "market_state": {
+        "market_win_rate": 43,
+        "index_chg": 1.69
+      },
+      "weights": {},
+      "factors": {
+        "criteria": {
+          "chg": true,
+          "turnover": false,
+          "vol_ratio": true,
+          "cap": false,
+          "vwap": true,
+          "stronger": true
+        }
+      },
+      "news": [],
+      "raw": {
+        "code": "688211",
+        "name": "中科微至",
+        "price": 35.35,
+        "chg_pct": 3.97,
+        "turnover": 1.21,
+        "vol_ratio": 1.11,
+        "float_cap": 4650.4,
+        "vwap": 0.0,
+        "mkt_code": 1,
+        "criteria": {
+          "chg": true,
+          "turnover": false,
+          "vol_ratio": true,
+          "cap": false,
+          "vwap": true,
+          "stronger": true
+        },
+        "score": 4,
+        "industry": "专用设备",
+        "est_win_rate": 46,
+        "reasons": [
+          "涨幅 4.0%，处于 3-5% 甜蜜区间，动能适中",
+          "超额大盘 2.3x，独立行情且未过热（历史最优区间）",
+          "大盘今日 +1.69%，历史同类条件胜率约 43%"
+        ]
+      },
+      "forward_returns": {
+        "next_open_pct": null,
+        "next_close_pct": null,
+        "return_5d_pct": null,
+        "return_20d_pct": null
+      }
+    },
+    {
+      "source_app": "overnight_stock",
+      "strategy": "overnight_top5_1450",
+      "snapshot_date": "2026-07-09",
+      "snapshot_time": "14:50:00",
+      "sequence": 5,
+      "code": "688261",
+      "name": "东微半导",
+      "market": "A",
+      "industry": "半导体",
+      "rank": 5,
+      "score": 46,
+      "recommendation": "buy",
+      "signal_action": "buy_top5",
+      "price": 95.6,
+      "open": null,
+      "close": null,
+      "chg_pct": 3.71,
+      "vol_ratio": 0.93,
+      "turnover": 9.31,
+      "capital_net": null,
+      "market_state": {
+        "market_win_rate": 43,
+        "index_chg": 1.69
+      },
+      "weights": {},
+      "factors": {
+        "criteria": {
+          "chg": true,
+          "turnover": true,
+          "vol_ratio": false,
+          "cap": false,
+          "vwap": true,
+          "stronger": true
+        }
+      },
+      "news": [],
+      "raw": {
+        "code": "688261",
+        "name": "东微半导",
+        "price": 95.6,
+        "chg_pct": 3.71,
+        "turnover": 9.31,
+        "vol_ratio": 0.93,
+        "float_cap": 11678.4,
+        "vwap": 0.0,
+        "mkt_code": 1,
+        "criteria": {
+          "chg": true,
+          "turnover": true,
+          "vol_ratio": false,
+          "cap": false,
+          "vwap": true,
+          "stronger": true
+        },
+        "score": 4,
+        "industry": "半导体",
+        "est_win_rate": 46,
+        "reasons": [
+          "涨幅 3.7%，处于 3-5% 甜蜜区间，动能适中",
+          "超额大盘 2.2x，独立行情且未过热（历史最优区间）",
+          "大盘今日 +1.69%，历史同类条件胜率约 43%"
+        ]
+      },
+      "forward_returns": {
+        "next_open_pct": null,
+        "next_close_pct": null,
+        "return_5d_pct": null,
+        "return_20d_pct": null
+      }
+    }
+  ]
+}
