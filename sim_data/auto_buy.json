@@ -1,1 +1,83 @@
-{}
+{
+  "date": "2026-07-09",
+  "buy_time": "14:50:00",
+  "market_win_rate": 43,
+  "index_chg": 1.69,
+  "positions": [
+    {
+      "code": "600345",
+      "name": "长江通信",
+      "buy_price": 59.28,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "est_win_rate": 46,
+      "industry": "通信设备"
+    },
+    {
+      "code": "601199",
+      "name": "江南水务",
+      "buy_price": 6.03,
+      "criteria": {
+        "chg": true,
+        "turnover": false,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "est_win_rate": 46,
+      "industry": "环境治理"
+    },
+    {
+      "code": "601162",
+      "name": "天风证券",
+      "buy_price": 3.79,
+      "criteria": {
+        "chg": true,
+        "turnover": false,
+        "vol_ratio": true,
+        "cap": false,
+        "vwap": true,
+        "stronger": true
+      },
+      "est_win_rate": 46,
+      "industry": "证券Ⅱ"
+    },
+    {
+      "code": "688211",
+      "name": "中科微至",
+      "buy_price": 35.35,
+      "criteria": {
+        "chg": true,
+        "turnover": false,
+        "vol_ratio": true,
+        "cap": false,
+        "vwap": true,
+        "stronger": true
+      },
+      "est_win_rate": 46,
+      "industry": "专用设备"
+    },
+    {
+      "code": "688261",
+      "name": "东微半导",
+      "buy_price": 95.6,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": false,
+        "cap": false,
+        "vwap": true,
+        "stronger": true
+      },
+      "est_win_rate": 46,
+      "industry": "半导体"
+    }
+  ]
+}
