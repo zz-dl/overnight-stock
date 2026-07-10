@@ -239,6 +239,106 @@
       "return_pct": 1.32,
       "industry": "普钢",
       "est_win_rate": 45
+    },
+    {
+      "code": "600345",
+      "name": "长江通信",
+      "buy_date": "2026-07-09",
+      "sell_date": "2026-07-10",
+      "buy_time": "14:50:00",
+      "buy_price": 59.28,
+      "sell_price": 60.73,
+      "return_pct": 2.35,
+      "industry": "通信设备",
+      "est_win_rate": 46,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      }
+    },
+    {
+      "code": "601199",
+      "name": "江南水务",
+      "buy_date": "2026-07-09",
+      "sell_date": "2026-07-10",
+      "buy_time": "14:50:00",
+      "buy_price": 6.03,
+      "sell_price": 5.93,
+      "return_pct": -1.76,
+      "industry": "环境治理",
+      "est_win_rate": 46,
+      "criteria": {
+        "chg": true,
+        "turnover": false,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      }
+    },
+    {
+      "code": "601162",
+      "name": "天风证券",
+      "buy_date": "2026-07-09",
+      "sell_date": "2026-07-10",
+      "buy_time": "14:50:00",
+      "buy_price": 3.79,
+      "sell_price": 3.68,
+      "return_pct": -3.0,
+      "industry": "证券Ⅱ",
+      "est_win_rate": 46,
+      "criteria": {
+        "chg": true,
+        "turnover": false,
+        "vol_ratio": true,
+        "cap": false,
+        "vwap": true,
+        "stronger": true
+      }
+    },
+    {
+      "code": "688211",
+      "name": "中科微至",
+      "buy_date": "2026-07-09",
+      "sell_date": "2026-07-10",
+      "buy_time": "14:50:00",
+      "buy_price": 35.35,
+      "sell_price": 36.41,
+      "return_pct": 2.9,
+      "industry": "专用设备",
+      "est_win_rate": 46,
+      "criteria": {
+        "chg": true,
+        "turnover": false,
+        "vol_ratio": true,
+        "cap": false,
+        "vwap": true,
+        "stronger": true
+      }
+    },
+    {
+      "code": "688261",
+      "name": "东微半导",
+      "buy_date": "2026-07-09",
+      "sell_date": "2026-07-10",
+      "buy_time": "14:50:00",
+      "buy_price": 95.6,
+      "sell_price": 96.16,
+      "return_pct": 0.49,
+      "industry": "半导体",
+      "est_win_rate": 46,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": false,
+        "cap": false,
+        "vwap": true,
+        "stronger": true
+      }
     }
   ]
 }
