@@ -179,6 +179,42 @@
         "stronger": true
       },
       "score": 6
+    },
+    {
+      "code": "600345",
+      "name": "长江通信",
+      "buy_price": 59.28,
+      "sell_price": 54.87,
+      "buy_date": "2026-07-09",
+      "sell_date": "2026-07-14",
+      "return_pct": -7.44,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "score": 6
+    },
+    {
+      "code": "601199",
+      "name": "江南水务",
+      "buy_price": 6.03,
+      "sell_price": 5.62,
+      "buy_date": "2026-07-09",
+      "sell_date": "2026-07-14",
+      "return_pct": -6.8,
+      "criteria": {
+        "chg": true,
+        "turnover": false,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "score": 5
     }
   ]
 }
