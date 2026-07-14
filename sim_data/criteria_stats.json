@@ -10,38 +10,38 @@
   "stats": {
     "chg": {
       "wins": 6,
-      "losses": 4,
-      "win_rate": 0.6,
+      "losses": 6,
+      "win_rate": 0.5,
       "active": true
     },
     "turnover": {
       "wins": 6,
-      "losses": 4,
-      "win_rate": 0.6,
+      "losses": 5,
+      "win_rate": 0.545,
       "active": true
     },
     "vol_ratio": {
       "wins": 6,
-      "losses": 4,
-      "win_rate": 0.6,
+      "losses": 6,
+      "win_rate": 0.5,
       "active": true
     },
     "cap": {
       "wins": 6,
-      "losses": 4,
-      "win_rate": 0.6,
+      "losses": 6,
+      "win_rate": 0.5,
       "active": true
     },
     "vwap": {
       "wins": 6,
-      "losses": 4,
-      "win_rate": 0.6,
+      "losses": 6,
+      "win_rate": 0.5,
       "active": true
     },
     "stronger": {
       "wins": 6,
-      "losses": 4,
-      "win_rate": 0.6,
+      "losses": 6,
+      "win_rate": 0.5,
       "active": true
     }
   }
