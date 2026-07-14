@@ -212,6 +212,62 @@ class MarketTimeGuardTests(unittest.TestCase):
         self.assertEqual(trade["criteria"], {"chg": True, "vol_ratio": False})
         self.assertEqual(writes["sim_data/auto_buy.json"], {})
 
+    def test_sell_fetches_exact_1000_price_when_tracking_drifted(self):
+        writes = {}
+        auto_buy = {
+            "date": "2026-06-08",
+            "positions": [{
+                "code": "000001",
+                "name": "TEST",
+                "buy_price": 10.0,
+                "industry": "bank",
+                "est_win_rate": 45,
+                "criteria": {"chg": True},
+            }],
+        }
+
+        def fake_read(path):
+            if path in writes:
+                return writes[path], f"{path}-sha"
+            if path == "sim_data/auto_buy.json":
+                return auto_buy, "auto-buy-sha"
+            if path == "sim_data/intraday/2026-06-08.json":
+                return {"09:59": {"000001": 10.4}}, "intraday-sha"
+            if path == "sim_data/auto_trades.json":
+                return {"trades": []}, "auto-trades-sha"
+            return None, None
+
+        def fake_write(path, data, sha, message):
+            writes[path] = data
+            return True
+
+        def fake_minute_points(codes):
+            self.assertEqual(codes, ["000001"])
+            return {"000001": {"10:00": 10.5}}
+
+        old_now = getattr(app_module, "_now_cn", None)
+        old_read = app_module.gh_read
+        old_write = app_module.gh_write
+        old_minutes = app_module._fetch_tencent_minute_points
+        try:
+            app_module._now_cn = lambda: cn_dt(10, 1)
+            app_module.gh_read = fake_read
+            app_module.gh_write = fake_write
+            app_module._fetch_tencent_minute_points = fake_minute_points
+            with app_module.app.test_request_context(method="POST"):
+                response = app_module.api_actions_sell()
+        finally:
+            if old_now is not None:
+                app_module._now_cn = old_now
+            app_module.gh_read = old_read
+            app_module.gh_write = old_write
+            app_module._fetch_tencent_minute_points = old_minutes
+
+        self.assertTrue(response.json["ok"])
+        trade = writes["sim_data/auto_trades.json"]["trades"][0]
+        self.assertEqual(trade["sell_price"], 10.5)
+        self.assertEqual(writes["sim_data/intraday/2026-06-08.json"]["10:00"]["000001"], 10.5)
+
     def test_sell_rejects_stale_pending_buy_date(self):
         writes = {}
         auto_buy = {

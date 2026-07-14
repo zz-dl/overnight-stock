@@ -1232,12 +1232,30 @@ def api_actions_sell():
         return jsonify({"ok": False, "msg": pending_date_error, "date": today})
 
     # 取10:00价格（先找 intraday，找不到就实时查）
-    intraday, _ = gh_read(f"sim_data/intraday/{buy_date}.json")
-    sell_prices = (intraday or {}).get("10:00", {}) or _latest_intraday_prices(intraday or {})
+    intraday_path = f"sim_data/intraday/{buy_date}.json"
+    intraday, intraday_sha = gh_read(intraday_path)
+    intraday = intraday or {}
+    codes = [p["code"] for p in auto_buy["positions"]]
+    sell_prices = intraday.get("10:00", {}) or {}
+
+    if not sell_prices:
+        minute_points = _fetch_tencent_minute_points(codes)
+        sell_prices = {
+            code: points.get("10:00")
+            for code, points in minute_points.items()
+            if isinstance(points, dict) and points.get("10:00")
+        }
+        if sell_prices:
+            merged = dict(intraday.get("10:00") or {})
+            merged.update(sell_prices)
+            intraday["10:00"] = merged
+            gh_write(intraday_path, intraday, intraday_sha, f"auto: prices {buy_date} 10:00")
+
+    if not sell_prices:
+        sell_prices = _latest_intraday_prices(intraday)
 
     if not sell_prices:
         # 实时查当前价格作为卖出价
-        codes = [p["code"] for p in auto_buy["positions"]]
         qtcodes = [_qt_code(c) for c in codes]
         try:
             r = _req.get(f"http://qt.gtimg.cn/q={','.join(qtcodes)}", timeout=8)
@@ -1252,14 +1270,6 @@ def api_actions_sell():
                         sell_prices[code] = p
         except Exception:
             pass
-
-    if not sell_prices:
-        minute_points = _fetch_tencent_minute_points([p["code"] for p in auto_buy["positions"]])
-        sell_prices = {
-            code: points.get("10:00")
-            for code, points in minute_points.items()
-            if isinstance(points, dict) and points.get("10:00")
-        }
 
     COST_PCT = 0.10
     settled = []
@@ -1441,7 +1451,7 @@ def api_actions_collect_trade_data():
                     "stocks": [r["name"] for r in detail_records]})
 
 
-APP_VERSION = "v20-stale-sim-pending-guard"
+APP_VERSION = "v21-exact-1000-sell-price"
 
 
 @app.route("/api/version")
