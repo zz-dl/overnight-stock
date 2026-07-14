@@ -1,0 +1,23 @@
+{
+  "date": "2026-07-14",
+  "source_app": "overnight_stock",
+  "strategy": "overnight_top5_1450",
+  "snapshot_time": "14:50:00",
+  "scan_time": "14:50:31",
+  "index_chg": 1.19,
+  "market_win_rate": 42,
+  "market_condition": "大盘+1.19%，涨幅较强，历史胜率尚可",
+  "above_ma250": true,
+  "total_scanned": 285,
+  "total_found": 0,
+  "active_criteria": [
+    "cap",
+    "chg",
+    "stronger",
+    "turnover",
+    "vol_ratio",
+    "vwap"
+  ],
+  "records": [],
+  "no_buy_reason": "大盘+1.19%，涨幅较强，历史胜率尚可"
+}
