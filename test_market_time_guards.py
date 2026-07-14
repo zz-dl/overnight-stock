@@ -471,6 +471,54 @@ class MarketTimeGuardTests(unittest.TestCase):
         self.assertEqual(detail["records"], [])
         self.assertNotIn("sim_data/auto_buy.json", writes)
 
+    def test_sim_settlement_clears_stale_pending_without_counting_trade(self):
+        writes = {}
+        pending = {
+            "date": "2026-07-09",
+            "positions": [{
+                "code": "600345",
+                "name": "TEST",
+                "price": 59.28,
+                "criteria": {"chg": True, "turnover": True, "vol_ratio": True,
+                             "cap": True, "vwap": True, "stronger": True},
+                "score": 6,
+            }],
+        }
+
+        class FakeResponse:
+            text = 'v_sh600345="51~TEST~600345~54.87";'
+
+        def fake_read(path):
+            if path == "sim_data/pending.json":
+                return pending, "pending-sha"
+            if path == "sim_data/trades.json":
+                return {"trades": []}, "trades-sha"
+            if path == "sim_data/criteria_stats.json":
+                return app_module._default_stats(), "stats-sha"
+            return None, None
+
+        def fake_write(path, data, sha, message):
+            writes[path] = data
+            return True
+
+        old_now = app_module._now_cn
+        old_read = app_module.gh_read
+        old_write = app_module.gh_write
+        old_get = app_module._req.get
+        try:
+            app_module._now_cn = lambda: datetime(2026, 7, 14, 14, 50, tzinfo=CN)
+            app_module.gh_read = fake_read
+            app_module.gh_write = fake_write
+            app_module._req.get = lambda *args, **kwargs: FakeResponse()
+            app_module._sim_run_settlement_and_record([])
+        finally:
+            app_module._now_cn = old_now
+            app_module.gh_read = old_read
+            app_module.gh_write = old_write
+            app_module._req.get = old_get
+
+        self.assertEqual(writes, {"sim_data/pending.json": {}})
+
 
 if __name__ == "__main__":
     unittest.main()

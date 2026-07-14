@@ -769,7 +769,20 @@ def _sim_run_settlement_and_record(scan_stocks: list) -> None:
         trades_data = {"trades": []}
 
     # 结算昨日持仓
-    if pending and pending.get("date") and pending["date"] != today:
+    pending_is_settle_candidate = bool(pending and pending.get("date") and pending["date"] != today)
+    if pending_is_settle_candidate:
+        try:
+            today_date = date.fromisoformat(today)
+            pending_date = date.fromisoformat(pending["date"])
+        except Exception:
+            gh_write("sim_data/pending.json", {}, pending_sha, f"sim: clear invalid pending {today}")
+            pending_is_settle_candidate = False
+
+        if pending_is_settle_candidate and pending_date != _previous_weekday(today_date):
+            gh_write("sim_data/pending.json", {}, pending_sha, f"sim: clear stale pending {today}")
+            pending_is_settle_candidate = False
+
+    if pending_is_settle_candidate:
         # 专门查询持仓股票的当前价格（不能依赖扫描结果，持仓股今日不一定在3-5%区间）
         pending_codes = [p["code"] for p in pending.get("positions", [])]
         price_map = {}
@@ -1428,7 +1441,7 @@ def api_actions_collect_trade_data():
                     "stocks": [r["name"] for r in detail_records]})
 
 
-APP_VERSION = "v19-pending-next-sell-audit"
+APP_VERSION = "v20-stale-sim-pending-guard"
 
 
 @app.route("/api/version")
