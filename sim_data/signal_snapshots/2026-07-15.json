@@ -1,0 +1,16 @@
+{
+  "date": "2026-07-15",
+  "source_app": "overnight_stock",
+  "strategy": "overnight_top5_1450",
+  "snapshot_time": "14:50:00",
+  "scan_time": "14:50:23",
+  "index_chg": -0.32,
+  "market_win_rate": 38,
+  "market_condition": "大盘+-0.32%，未达 0.5% 门槛 ⚠️ 暂停买入（回测结论②）",
+  "above_ma250": true,
+  "total_scanned": 0,
+  "total_found": 0,
+  "active_criteria": [],
+  "records": [],
+  "no_buy_reason": "大盘+-0.32%，未达 0.5% 门槛 ⚠️ 暂停买入（回测结论②）"
+}
