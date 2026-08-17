@@ -1,0 +1,378 @@
+{
+  "date": "2026-08-17",
+  "source_app": "overnight_stock",
+  "strategy": "overnight_top5_1450",
+  "snapshot_time": "14:50:00",
+  "scan_time": "14:50:48",
+  "index_chg": 1.36,
+  "market_win_rate": 44,
+  "market_condition": "大盘+1.36%，涨幅较强，历史胜率尚可",
+  "above_ma250": true,
+  "total_scanned": 262,
+  "total_found": 37,
+  "active_criteria": [
+    "cap",
+    "chg",
+    "stronger",
+    "turnover",
+    "vol_ratio",
+    "vwap"
+  ],
+  "records": [
+    {
+      "source_app": "overnight_stock",
+      "strategy": "overnight_top5_1450",
+      "snapshot_date": "2026-08-17",
+      "snapshot_time": "14:50:00",
+      "sequence": 1,
+      "code": "600552",
+      "name": "凯盛科技",
+      "market": "A",
+      "industry": "光学光电子",
+      "rank": 1,
+      "score": 47,
+      "recommendation": "buy",
+      "signal_action": "buy_top5",
+      "price": 19.21,
+      "open": null,
+      "close": null,
+      "chg_pct": 3.34,
+      "vol_ratio": 1.32,
+      "turnover": 7.49,
+      "capital_net": null,
+      "market_state": {
+        "market_win_rate": 44,
+        "index_chg": 1.36
+      },
+      "weights": {},
+      "factors": {
+        "criteria": {
+          "chg": true,
+          "turnover": true,
+          "vol_ratio": true,
+          "cap": true,
+          "vwap": true,
+          "stronger": true
+        }
+      },
+      "news": [],
+      "raw": {
+        "code": "600552",
+        "name": "凯盛科技",
+        "price": 19.21,
+        "chg_pct": 3.34,
+        "turnover": 7.49,
+        "vol_ratio": 1.32,
+        "float_cap": 181.3,
+        "vwap": 0.002,
+        "mkt_code": 1,
+        "criteria": {
+          "chg": true,
+          "turnover": true,
+          "vol_ratio": true,
+          "cap": true,
+          "vwap": true,
+          "stronger": true
+        },
+        "score": 6,
+        "industry": "光学光电子",
+        "est_win_rate": 47,
+        "reasons": [
+          "涨幅 3.3%，温和启动，追高风险低",
+          "超额大盘 2.5x，独立行情且未过热（历史最优区间）",
+          "大盘今日 +1.36%，历史同类条件胜率约 44%"
+        ]
+      },
+      "forward_returns": {
+        "next_open_pct": null,
+        "next_close_pct": null,
+        "return_5d_pct": null,
+        "return_20d_pct": null
+      }
+    },
+    {
+      "source_app": "overnight_stock",
+      "strategy": "overnight_top5_1450",
+      "snapshot_date": "2026-08-17",
+      "snapshot_time": "14:50:00",
+      "sequence": 2,
+      "code": "603181",
+      "name": "皇马科技",
+      "market": "A",
+      "industry": "化学制品",
+      "rank": 2,
+      "score": 47,
+      "recommendation": "buy",
+      "signal_action": "buy_top5",
+      "price": 13.37,
+      "open": null,
+      "close": null,
+      "chg_pct": 3.32,
+      "vol_ratio": 2.38,
+      "turnover": 1.8,
+      "capital_net": null,
+      "market_state": {
+        "market_win_rate": 44,
+        "index_chg": 1.36
+      },
+      "weights": {},
+      "factors": {
+        "criteria": {
+          "chg": true,
+          "turnover": false,
+          "vol_ratio": true,
+          "cap": true,
+          "vwap": true,
+          "stronger": true
+        }
+      },
+      "news": [],
+      "raw": {
+        "code": "603181",
+        "name": "皇马科技",
+        "price": 13.37,
+        "chg_pct": 3.32,
+        "turnover": 1.8,
+        "vol_ratio": 2.38,
+        "float_cap": 78.9,
+        "vwap": 0.001,
+        "mkt_code": 1,
+        "criteria": {
+          "chg": true,
+          "turnover": false,
+          "vol_ratio": true,
+          "cap": true,
+          "vwap": true,
+          "stronger": true
+        },
+        "score": 5,
+        "industry": "化学制品",
+        "est_win_rate": 47,
+        "reasons": [
+          "涨幅 3.3%，温和启动，追高风险低",
+          "超额大盘 2.4x，独立行情且未过热（历史最优区间）",
+          "大盘今日 +1.36%，历史同类条件胜率约 44%"
+        ]
+      },
+      "forward_returns": {
+        "next_open_pct": null,
+        "next_close_pct": null,
+        "return_5d_pct": null,
+        "return_20d_pct": null
+      }
+    },
+    {
+      "source_app": "overnight_stock",
+      "strategy": "overnight_top5_1450",
+      "snapshot_date": "2026-08-17",
+      "snapshot_time": "14:50:00",
+      "sequence": 3,
+      "code": "600399",
+      "name": "抚顺特钢",
+      "market": "A",
+      "industry": "特钢Ⅱ",
+      "rank": 3,
+      "score": 47,
+      "recommendation": "buy",
+      "signal_action": "buy_top5",
+      "price": 4.37,
+      "open": null,
+      "close": null,
+      "chg_pct": 3.07,
+      "vol_ratio": 1.38,
+      "turnover": 1.91,
+      "capital_net": null,
+      "market_state": {
+        "market_win_rate": 44,
+        "index_chg": 1.36
+      },
+      "weights": {},
+      "factors": {
+        "criteria": {
+          "chg": true,
+          "turnover": false,
+          "vol_ratio": true,
+          "cap": true,
+          "vwap": true,
+          "stronger": true
+        }
+      },
+      "news": [],
+      "raw": {
+        "code": "600399",
+        "name": "抚顺特钢",
+        "price": 4.37,
+        "chg_pct": 3.07,
+        "turnover": 1.91,
+        "vol_ratio": 1.38,
+        "float_cap": 86.3,
+        "vwap": 0.0,
+        "mkt_code": 1,
+        "criteria": {
+          "chg": true,
+          "turnover": false,
+          "vol_ratio": true,
+          "cap": true,
+          "vwap": true,
+          "stronger": true
+        },
+        "score": 5,
+        "industry": "特钢Ⅱ",
+        "est_win_rate": 47,
+        "reasons": [
+          "涨幅 3.1%，温和启动，追高风险低",
+          "超额大盘 2.3x，独立行情且未过热（历史最优区间）",
+          "大盘今日 +1.36%，历史同类条件胜率约 44%"
+        ]
+      },
+      "forward_returns": {
+        "next_open_pct": null,
+        "next_close_pct": null,
+        "return_5d_pct": null,
+        "return_20d_pct": null
+      }
+    },
+    {
+      "source_app": "overnight_stock",
+      "strategy": "overnight_top5_1450",
+      "snapshot_date": "2026-08-17",
+      "snapshot_time": "14:50:00",
+      "sequence": 4,
+      "code": "603217",
+      "name": "元利科技",
+      "market": "A",
+      "industry": "化学制品",
+      "rank": 4,
+      "score": 47,
+      "recommendation": "buy",
+      "signal_action": "buy_top5",
+      "price": 26.65,
+      "open": null,
+      "close": null,
+      "chg_pct": 3.13,
+      "vol_ratio": 1.34,
+      "turnover": 2.25,
+      "capital_net": null,
+      "market_state": {
+        "market_win_rate": 44,
+        "index_chg": 1.36
+      },
+      "weights": {},
+      "factors": {
+        "criteria": {
+          "chg": true,
+          "turnover": false,
+          "vol_ratio": true,
+          "cap": true,
+          "vwap": true,
+          "stronger": true
+        }
+      },
+      "news": [],
+      "raw": {
+        "code": "603217",
+        "name": "元利科技",
+        "price": 26.65,
+        "chg_pct": 3.13,
+        "turnover": 2.25,
+        "vol_ratio": 1.34,
+        "float_cap": 55.4,
+        "vwap": 0.003,
+        "mkt_code": 1,
+        "criteria": {
+          "chg": true,
+          "turnover": false,
+          "vol_ratio": true,
+          "cap": true,
+          "vwap": true,
+          "stronger": true
+        },
+        "score": 5,
+        "industry": "化学制品",
+        "est_win_rate": 47,
+        "reasons": [
+          "涨幅 3.1%，温和启动，追高风险低",
+          "超额大盘 2.3x，独立行情且未过热（历史最优区间）",
+          "大盘今日 +1.36%，历史同类条件胜率约 44%"
+        ]
+      },
+      "forward_returns": {
+        "next_open_pct": null,
+        "next_close_pct": null,
+        "return_5d_pct": null,
+        "return_20d_pct": null
+      }
+    },
+    {
+      "source_app": "overnight_stock",
+      "strategy": "overnight_top5_1450",
+      "snapshot_date": "2026-08-17",
+      "snapshot_time": "14:50:00",
+      "sequence": 5,
+      "code": "688106",
+      "name": "金宏气体",
+      "market": "A",
+      "industry": "电子化学品Ⅱ",
+      "rank": 5,
+      "score": 47,
+      "recommendation": "buy",
+      "signal_action": "buy_top5",
+      "price": 30.58,
+      "open": null,
+      "close": null,
+      "chg_pct": 3.03,
+      "vol_ratio": 1.3,
+      "turnover": 5.02,
+      "capital_net": null,
+      "market_state": {
+        "market_win_rate": 44,
+        "index_chg": 1.36
+      },
+      "weights": {},
+      "factors": {
+        "criteria": {
+          "chg": true,
+          "turnover": true,
+          "vol_ratio": true,
+          "cap": false,
+          "vwap": true,
+          "stronger": true
+        }
+      },
+      "news": [],
+      "raw": {
+        "code": "688106",
+        "name": "金宏气体",
+        "price": 30.58,
+        "chg_pct": 3.03,
+        "turnover": 5.02,
+        "vol_ratio": 1.3,
+        "float_cap": 16236.6,
+        "vwap": 0.0,
+        "mkt_code": 1,
+        "criteria": {
+          "chg": true,
+          "turnover": true,
+          "vol_ratio": true,
+          "cap": false,
+          "vwap": true,
+          "stronger": true
+        },
+        "score": 5,
+        "industry": "电子化学品Ⅱ",
+        "est_win_rate": 47,
+        "reasons": [
+          "涨幅 3.0%，温和启动，追高风险低",
+          "超额大盘 2.2x，独立行情且未过热（历史最优区间）",
+          "大盘今日 +1.36%，历史同类条件胜率约 44%"
+        ]
+      },
+      "forward_returns": {
+        "next_open_pct": null,
+        "next_close_pct": null,
+        "return_5d_pct": null,
+        "return_20d_pct": null
+      }
+    }
+  ]
+}
