@@ -1,1 +1,76 @@
-{}
+{
+  "date": "2026-08-17",
+  "scan_time": "14:50:47",
+  "positions": [
+    {
+      "code": "600552",
+      "name": "凯盛科技",
+      "price": 19.21,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "score": 6
+    },
+    {
+      "code": "603181",
+      "name": "皇马科技",
+      "price": 13.37,
+      "criteria": {
+        "chg": true,
+        "turnover": false,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "score": 5
+    },
+    {
+      "code": "600399",
+      "name": "抚顺特钢",
+      "price": 4.37,
+      "criteria": {
+        "chg": true,
+        "turnover": false,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "score": 5
+    },
+    {
+      "code": "603217",
+      "name": "元利科技",
+      "price": 26.65,
+      "criteria": {
+        "chg": true,
+        "turnover": false,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      },
+      "score": 5
+    },
+    {
+      "code": "688106",
+      "name": "金宏气体",
+      "price": 30.58,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": false,
+        "vwap": true,
+        "stronger": true
+      },
+      "score": 5
+    }
+  ]
+}
