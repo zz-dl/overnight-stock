@@ -339,6 +339,106 @@
         "vwap": true,
         "stronger": true
       }
+    },
+    {
+      "code": "600552",
+      "name": "凯盛科技",
+      "buy_date": "2026-08-17",
+      "sell_date": "2026-08-18",
+      "buy_time": "14:50:00",
+      "buy_price": 19.21,
+      "sell_price": 19.94,
+      "return_pct": 3.7,
+      "industry": "光学光电子",
+      "est_win_rate": 47,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      }
+    },
+    {
+      "code": "603181",
+      "name": "皇马科技",
+      "buy_date": "2026-08-17",
+      "sell_date": "2026-08-18",
+      "buy_time": "14:50:00",
+      "buy_price": 13.37,
+      "sell_price": 13.16,
+      "return_pct": -1.67,
+      "industry": "化学制品",
+      "est_win_rate": 47,
+      "criteria": {
+        "chg": true,
+        "turnover": false,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      }
+    },
+    {
+      "code": "600399",
+      "name": "抚顺特钢",
+      "buy_date": "2026-08-17",
+      "sell_date": "2026-08-18",
+      "buy_time": "14:50:00",
+      "buy_price": 4.37,
+      "sell_price": 4.33,
+      "return_pct": -1.02,
+      "industry": "特钢Ⅱ",
+      "est_win_rate": 47,
+      "criteria": {
+        "chg": true,
+        "turnover": false,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      }
+    },
+    {
+      "code": "603217",
+      "name": "元利科技",
+      "buy_date": "2026-08-17",
+      "sell_date": "2026-08-18",
+      "buy_time": "14:50:00",
+      "buy_price": 26.65,
+      "sell_price": 26.05,
+      "return_pct": -2.35,
+      "industry": "化学制品",
+      "est_win_rate": 47,
+      "criteria": {
+        "chg": true,
+        "turnover": false,
+        "vol_ratio": true,
+        "cap": true,
+        "vwap": true,
+        "stronger": true
+      }
+    },
+    {
+      "code": "688106",
+      "name": "金宏气体",
+      "buy_date": "2026-08-17",
+      "sell_date": "2026-08-18",
+      "buy_time": "14:50:00",
+      "buy_price": 30.58,
+      "sell_price": 30.45,
+      "return_pct": -0.53,
+      "industry": "电子化学品Ⅱ",
+      "est_win_rate": 47,
+      "criteria": {
+        "chg": true,
+        "turnover": true,
+        "vol_ratio": true,
+        "cap": false,
+        "vwap": true,
+        "stronger": true
+      }
     }
   ]
 }
