@@ -1,0 +1,16 @@
+{
+  "date": "2026-09-03",
+  "source_app": "overnight_stock",
+  "strategy": "overnight_top5_1450",
+  "snapshot_time": "14:50:00",
+  "scan_time": "14:51:13",
+  "index_chg": -0.01,
+  "market_win_rate": 30,
+  "market_condition": "大盘在年线（MA250）下方 ⚠️ 结构性熊市，暂停买入",
+  "above_ma250": false,
+  "total_scanned": 0,
+  "total_found": 0,
+  "active_criteria": [],
+  "records": [],
+  "no_buy_reason": "大盘在年线（MA250）下方 ⚠️ 结构性熊市，暂停买入"
+}
