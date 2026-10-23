@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-23",
+  "source_app": "overnight_stock",
+  "strategy": "overnight_top5_1450",
+  "snapshot_time": "14:50:00",
+  "scan_time": "14:50:39",
+  "index_chg": 0.74,
+  "market_win_rate": 56,
+  "market_condition": "大盘+0.74%，0.5-1.0% 历史最优区间",
+  "above_ma250": true,
+  "total_scanned": 279,
+  "total_found": 0,
+  "active_criteria": [
+    "cap",
+    "chg",
+    "stronger",
+    "turnover",
+    "vol_ratio",
+    "vwap"
+  ],
+  "records": [],
+  "no_buy_reason": "大盘+0.74%，0.5-1.0% 历史最优区间"
+}
